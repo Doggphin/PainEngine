@@ -24,15 +24,11 @@ int mouseDeltaY = 0;
 
 int shadingMode = GL_FLAT;
 
-int th = 0;          //  Azimuth of view angle
-int ph = 0;          //  Elevation of view angle
-
 int axes = 1;
 
 Quaternion objectRotation;
 Entity* testEntity;
 
-int useTestCamera = 0;
 void display() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
@@ -132,28 +128,22 @@ void idle() {
 	// Input buffer can now be cleared
 	Input_clearBuffer();
 	
-	// set test rotator
 	Vector3 forward;
 	Vector3_preset(FORWARD, &forward);
 	Vector3 rotator;
 	Vector3_set(cos(cumulativeTime), 0, sin(cumulativeTime), &rotator);
 	Quaternion_fromToRotation(&forward, &rotator, &objectRotation);
-	//Quaternion_setIdentity(&objectRotation);
 }
 
 
 void passive(int x, int y) {
-	mouseDeltaX += x;
-	mouseDeltaY += y;
 	if (lockCursor) {
 		glutSetCursor(GLUT_CURSOR_NONE);	// Can be optimized
 		glutWarpPointer(windowLength / 2, windowHeight / 2);
+		mouseDeltaX += x;
+		mouseDeltaY += y;
 	}
 }
-
-/*void lateUpdate() {
-	glutTimerFunc(50, timer??, 0);
-}*/
 
 
 void reshape(int width, int height) {
@@ -182,23 +172,23 @@ int main(int argc, char* argv[]) {
 	glutIdleFunc(idle);
 	ErrCheck("init");
 
-	Entity* player = ECS_instantiate();						// creates a new entity with a transform component
-	Vector3_set(2, 0.5, 0, &(player->transform->position));	// transform component is referenced in the entity struct for ease of access
-	ECS_addComponent(player, CTYPE_COLLIDER);				// defaults to not having a collider type
-	ECS_addComponent(player, CTYPE_ENTITYROTATOR);			// just rotates parent entity transform and changes its color to turquoise
+	Entity* player = ECS_instantiate();
+	Vector3_set(2, 0.5, 0, &(player->transform->position));
+	ECS_addComponent(player, CTYPE_COLLIDER);
+	ECS_addComponent(player, CTYPE_ENTITYROTATOR);
 	PlayerController* player_pController = ECS_addComponent(player, CTYPE_PLAYERCONTROLLER);
-	Camera* player_camera = ECS_addComponent(player, CTYPE_CAMERA);		// defaults to the position + rotation of parent entity's transform
-	Mesh* player_mesh = ECS_addComponent(player, CTYPE_MESH);			// defaults to white color and no mesh
+	Camera* player_camera = ECS_addComponent(player, CTYPE_CAMERA);
+	Mesh* player_mesh = ECS_addComponent(player, CTYPE_MESH);
 	player_camera->fov = 100;
 	player_camera->dim = 1;
 	player_mesh->mesh_type = MESHTYPE_TEAPOT;
 	player_pController->camera = player_camera;
 
-	Entity* entity2 = ECS_instantiate();						// creates a new entity with a transform component
-	Vector3_set(0, 0, 0, &(entity2->transform->position));	// transform component is referenced in the entity struct for ease of access
-	ECS_addComponent(entity2, CTYPE_COLLIDER);				// defaults to not having a collider type
-	ECS_addComponent(entity2, CTYPE_ENTITYROTATOR);			// just rotates parent entity transform and changes its color to turquoise
-	Mesh* m2 = ECS_addComponent(entity2, CTYPE_MESH);			// defaults to white color and no mesh
+	Entity* entity2 = ECS_instantiate();
+	Vector3_set(0, 0, 0, &(entity2->transform->position));
+	ECS_addComponent(entity2, CTYPE_COLLIDER);
+	ECS_addComponent(entity2, CTYPE_ENTITYROTATOR);
+	Mesh* m2 = ECS_addComponent(entity2, CTYPE_MESH);
 	m2->mesh_type = MESHTYPE_TEAPOT;
 
 	testEntity = player;

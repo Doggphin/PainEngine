@@ -1,11 +1,5 @@
 #include "ecs.h"
-#include "comp_mesh.h"
-#include "comp_entityrotator.h"
-#include "comp_playercontroller.h"
-#include "comp_transform.h"
-#include "comp_camera.h"
-#include "comp_collider.h"
-#include "comp_cameracontroller.h"
+#include "includeallcomps.h"
 
 // https://gamedev.stackexchange.com/questions/172584/how-could-i-implement-an-ecs-in-c
 
@@ -25,30 +19,6 @@ typedef struct ComponentHashes {
 	struct CameraController* cameraControllers;
 } ComponentHashes;
 static struct ComponentHashes componenthashes;
-
-
-void ECS_createUpdateListener(void* component_ptr, int id, ComponentType ctype) {
-	struct EventListener* u = malloc(sizeof(struct EventListener));
-	u->component_ptr = component_ptr;
-	u->ctype = ctype;
-	u->id = id;
-	HASH_ADD_INT((componenthashes.updateListeners), id, u);
-}
-void ECS_createLateUpdateListener(void* component_ptr, int id, ComponentType ctype) {
-	struct EventListener* u = malloc(sizeof(struct EventListener));
-	u->component_ptr = component_ptr;
-	u->ctype = ctype;
-	u->id = id;
-	HASH_ADD_INT((componenthashes.lateupdateListeners), id, u);
-}
-void ECS_createStartListener(void* component_ptr, int id, ComponentType ctype) {
-	struct EventListener* u = malloc(sizeof(struct EventListener));
-	u->component_ptr = component_ptr;
-	u->ctype = ctype;
-	u->id = id;
-	HASH_ADD_INT((componenthashes.startListeners), id, u);
-}
-
 
 #define MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(COMPONENTNAME, HASHNAME, CTYPE) \
 	void ECS_update ## COMPONENTNAME ## Component(float delta, EventListener* listener) { \
@@ -72,6 +42,41 @@ void ECS_createStartListener(void* component_ptr, int id, ComponentType ctype) {
 	ECS_createLateUpdateListener(x, id, CTYPE); \
     return x;\
 }
+#define MACRO_CASE_UPDATELISTENEROFCTYPE(COMPONENTNAME, CTYPE) \
+case CTYPE: \
+	ECS_update ## COMPONENTNAME ## Component(delta, updateListener); \
+	break;
+#define MACRO_CASE_LATEUPDATELISTENEROFCTYPE(COMPONENTNAME, CTYPE) \
+case CTYPE: \
+	ECS_lateupdate ## COMPONENTNAME ## Component(lateupdateListener); \
+	break;
+#define MACRO_CASE_STARTLISTENEROFCTYPE(COMPONENTNAME, CTYPE) \
+case CTYPE: \
+	ECS_start ## COMPONENTNAME ## Component(startListener); \
+	break;
+
+void ECS_createUpdateListener(void* component_ptr, int id, ComponentType ctype) {
+	struct EventListener* u = malloc(sizeof(struct EventListener));
+	u->component_ptr = component_ptr;
+	u->ctype = ctype;
+	u->id = id;
+	HASH_ADD_INT((componenthashes.updateListeners), id, u);
+}
+void ECS_createLateUpdateListener(void* component_ptr, int id, ComponentType ctype) {
+	struct EventListener* u = malloc(sizeof(struct EventListener));
+	u->component_ptr = component_ptr;
+	u->ctype = ctype;
+	u->id = id;
+	HASH_ADD_INT((componenthashes.lateupdateListeners), id, u);
+}
+void ECS_createStartListener(void* component_ptr, int id, ComponentType ctype) {
+	struct EventListener* u = malloc(sizeof(struct EventListener));
+	u->component_ptr = component_ptr;
+	u->ctype = ctype;
+	u->id = id;
+	HASH_ADD_INT((componenthashes.startListeners), id, u);
+}
+
 
 MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(EntityRotator, componenthashes.entityRotators, CTYPE_ENTITYROTATOR)
 MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(PlayerController, componenthashes.playerControllers, CTYPE_PLAYERCONTROLLER)
@@ -144,6 +149,7 @@ bool ECS_removeComponent(Entity* entity, ComponentType componentType) {
 	return false;
 }
 
+
 void* ECS_addComponent(Entity* entity, ComponentType componentType) {
 
 	component_id_counter++;
@@ -165,6 +171,7 @@ void* ECS_addComponent(Entity* entity, ComponentType componentType) {
 	}
 }
 
+
 void* ECS_getAllInstancesOfComponent(ComponentType ctype) {
 	switch (ctype) {
 		case CTYPE_CAMERA:
@@ -176,26 +183,13 @@ void* ECS_getAllInstancesOfComponent(ComponentType ctype) {
 	}
 }
 
+
 Entity* ECS_getEntity(int id) {
 	Entity* ret = NULL;
 	HASH_FIND_INT((componenthashes.entities), &id, ret);
 	return ret;
 }
 
-#define MACRO_CASE_UPDATELISTENEROFCTYPE(COMPONENTNAME, CTYPE) \
-case CTYPE: \
-	ECS_update ## COMPONENTNAME ## Component(delta, updateListener); \
-	break;
-
-#define MACRO_CASE_LATEUPDATELISTENEROFCTYPE(COMPONENTNAME, CTYPE) \
-case CTYPE: \
-	ECS_lateupdate ## COMPONENTNAME ## Component(lateupdateListener); \
-	break;
-
-#define MACRO_CASE_STARTLISTENEROFCTYPE(COMPONENTNAME, CTYPE) \
-case CTYPE: \
-	ECS_start ## COMPONENTNAME ## Component(startListener); \
-	break;
 
 void ECS_runUpdates(float delta) {
 	struct EventListener* updateListener, *tmp;
@@ -213,6 +207,22 @@ void ECS_runUpdates(float delta) {
 	}
 }
 
+
+void ECS_runLateUpdates() {
+	struct EventListener* lateupdateListener, * tmp;
+	HASH_ITER(hh, componenthashes.lateupdateListeners, lateupdateListener, tmp) {
+		switch (lateupdateListener->ctype) {
+			//MACRO_CASE_LATEUPDATELISTENEROFCTYPE(CameraController, CTYPE_CAMERACONTROLLER)
+			default:
+				//printf("Unused lateUpdate function for CTYPE ID %d. Deleting listener.\n", (int)lateupdateListener->ctype);
+				HASH_DEL(componenthashes.lateupdateListeners, lateupdateListener);
+				free(lateupdateListener);
+				break;
+		}
+	}
+}
+
+
 void ECS_runStarts() {
 	struct EventListener* startListener, * tmp;
 	HASH_ITER(hh, componenthashes.startListeners, startListener, tmp) {
@@ -224,19 +234,5 @@ void ECS_runStarts() {
 		}
 		HASH_DEL(componenthashes.startListeners, startListener);
 		free(startListener);
-	}
-}
-
-void ECS_runLateUpdates() {
-	struct EventListener* lateupdateListener, * tmp;
-	HASH_ITER(hh, componenthashes.lateupdateListeners, lateupdateListener, tmp) {
-		switch (lateupdateListener->ctype) {
-			//MACRO_CASE_LATEUPDATELISTENEROFCTYPE(CameraController, CTYPE_CAMERACONTROLLER)
-		default:
-			//printf("Unused lateUpdate function for CTYPE ID %d. Deleting listener.\n", (int)lateupdateListener->ctype);
-			HASH_DEL(componenthashes.lateupdateListeners, lateupdateListener);
-			free(lateupdateListener);
-			break;
-		}
 	}
 }
