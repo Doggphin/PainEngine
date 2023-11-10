@@ -150,7 +150,7 @@ void reshape(int width, int height) {
 }
 
 
-int initScene() {
+void initScene() {
 	Entity* player = ECS_instantiate();
 	Vector3_set(2, 0.5, 0, &(player->transform->position));
 	ECS_addComponent(player, CTYPE_COLLIDER);

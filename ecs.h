@@ -28,7 +28,7 @@ typedef struct Entity {
 Entity* ECS_instantiate();
 Entity* ECS_getEntity(int parent_id);
 void* ECS_getComponent(Entity* entity, ComponentType componentType);
-bool ECS_removeComponent(Entity* entity, ComponentType componentType);
+int ECS_removeComponent(Entity* entity, ComponentType componentType);
 void* ECS_addComponent(Entity* entity, ComponentType componentType);
 void ECS_runUpdates(float delta);
 void ECS_runLateUpdates();

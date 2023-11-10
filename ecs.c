@@ -5,6 +5,9 @@
 
 int component_id_counter = 0;
 
+/*
+ * A table used to keep track of all instantiated components.
+ */
 typedef struct ComponentHashes {
 	struct Transform* transforms;
 	struct Entity* entities;
@@ -18,7 +21,44 @@ typedef struct ComponentHashes {
 	struct EventListener* lateupdateListeners;
 	struct CameraController* cameraControllers;
 } ComponentHashes;
+/*
+ * Singleton that contains references all instantiated components.
+ */
 static struct ComponentHashes componenthashes;
+
+
+// Private functions to add event listeners to newly instantiated components
+/*
+ * Subscribes a component to update events.
+ */
+void ECS_createUpdateListener(void* component_ptr, int id, ComponentType ctype) {
+	struct EventListener* u = malloc(sizeof(struct EventListener));
+	u->component_ptr = component_ptr;
+	u->ctype = ctype;
+	u->id = id;
+	HASH_ADD_INT((componenthashes.updateListeners), id, u);
+}
+/*
+ * Subscribes a component to lateupdate events.
+ */
+void ECS_createLateUpdateListener(void* component_ptr, int id, ComponentType ctype) {
+	struct EventListener* u = malloc(sizeof(struct EventListener));
+	u->component_ptr = component_ptr;
+	u->ctype = ctype;
+	u->id = id;
+	HASH_ADD_INT((componenthashes.lateupdateListeners), id, u);
+}
+/*
+ * Subscribes a component to a start event.
+ */
+void ECS_createStartListener(void* component_ptr, int id, ComponentType ctype) {
+	struct EventListener* u = malloc(sizeof(struct EventListener));
+	u->component_ptr = component_ptr;
+	u->ctype = ctype;
+	u->id = id;
+	HASH_ADD_INT((componenthashes.startListeners), id, u);
+}
+
 
 #define MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(COMPONENTNAME, HASHNAME, CTYPE) \
 	void ECS_update ## COMPONENTNAME ## Component(float delta, EventListener* listener) { \
@@ -42,42 +82,8 @@ static struct ComponentHashes componenthashes;
 	ECS_createLateUpdateListener(x, id, CTYPE); \
     return x;\
 }
-#define MACRO_CASE_UPDATELISTENEROFCTYPE(COMPONENTNAME, CTYPE) \
-case CTYPE: \
-	ECS_update ## COMPONENTNAME ## Component(delta, updateListener); \
-	break;
-#define MACRO_CASE_LATEUPDATELISTENEROFCTYPE(COMPONENTNAME, CTYPE) \
-case CTYPE: \
-	ECS_lateupdate ## COMPONENTNAME ## Component(lateupdateListener); \
-	break;
-#define MACRO_CASE_STARTLISTENEROFCTYPE(COMPONENTNAME, CTYPE) \
-case CTYPE: \
-	ECS_start ## COMPONENTNAME ## Component(startListener); \
-	break;
 
-void ECS_createUpdateListener(void* component_ptr, int id, ComponentType ctype) {
-	struct EventListener* u = malloc(sizeof(struct EventListener));
-	u->component_ptr = component_ptr;
-	u->ctype = ctype;
-	u->id = id;
-	HASH_ADD_INT((componenthashes.updateListeners), id, u);
-}
-void ECS_createLateUpdateListener(void* component_ptr, int id, ComponentType ctype) {
-	struct EventListener* u = malloc(sizeof(struct EventListener));
-	u->component_ptr = component_ptr;
-	u->ctype = ctype;
-	u->id = id;
-	HASH_ADD_INT((componenthashes.lateupdateListeners), id, u);
-}
-void ECS_createStartListener(void* component_ptr, int id, ComponentType ctype) {
-	struct EventListener* u = malloc(sizeof(struct EventListener));
-	u->component_ptr = component_ptr;
-	u->ctype = ctype;
-	u->id = id;
-	HASH_ADD_INT((componenthashes.startListeners), id, u);
-}
-
-
+// Macros to define create(), start(), update() and lateupdate() functions
 MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(EntityRotator, componenthashes.entityRotators, CTYPE_ENTITYROTATOR)
 MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(PlayerController, componenthashes.playerControllers, CTYPE_PLAYERCONTROLLER)
 MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(Transform, componenthashes.transforms, CTYPE_TRANSFORM)
@@ -87,80 +93,140 @@ MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(Collider, componenthashes.colliders, CTYPE_CO
 MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(CameraController, componenthashes.cameraControllers, CTYPE_CAMERACONTROLLER)
 
 
+/*
+ * Creates an entity of a given parent ID and personal ID.
+ */
 Entity* ECS_createEntity(int parent_id, int id) {
 	struct Entity* e = malloc(sizeof(struct Entity));
 	e->parent_id = parent_id;
 	e->id = id;
 	e->num_children = 0;
-	e->transform = ECS_createTransformComponent(parent_id, id);
+	component_id_counter++;
+	e->transform = ECS_createTransformComponent(id, component_id_counter);
 	HASH_ADD_INT((componenthashes.entities), id, e);
 	return e;
 }
-
-
+/*
+ * Creates a new entity.
+ * All entities are instantiated with a transform component.
+ * @return
+ *      A pointer to the created entity.
+ */
 Entity* ECS_instantiate() {
 	component_id_counter++;
 	return ECS_createEntity(0, component_id_counter);
 }
 
-// WORK ON ME
+
+#define MACRO_CASE_GETCOMPONENTOFCTYPE(COMPONENTNAME, HASHNAME, CTYPE) \
+case CTYPE: \
+	COMPONENTNAME* ge ## COMPONENTNAME ## t; \
+	HASH_FIND_INT((HASHNAME), &(entity->id), ge ## COMPONENTNAME ## t); \
+	return ge ## COMPONENTNAME ## t;
+/*
+ * Queries a component for a component and returns it.
+ * @param entity
+ *		The entity to query.
+ * @param componentType
+ *		The type of component to search for.
+ * @return
+ *      A pointer to the component if found, otherwise NULL.
+ */
 void* ECS_getComponent(Entity* entity, ComponentType componentType) {
 	switch (componentType) {
-		case CTYPE_MESH:
-			Mesh *mesh;
-			HASH_FIND_INT((componenthashes.meshes), &(entity->id), mesh);
-			return mesh;
-			break;
-		case CTYPE_COLLIDER:
-			Collider *coll;
-			HASH_FIND_INT((componenthashes.colliders), &(entity->id), coll);
-			return coll;
-			break;
+		MACRO_CASE_GETCOMPONENTOFCTYPE(Camera, componenthashes.cameras, CTYPE_CAMERA)
+		MACRO_CASE_GETCOMPONENTOFCTYPE(Transform, componenthashes.transforms, CTYPE_TRANSFORM)
+		MACRO_CASE_GETCOMPONENTOFCTYPE(Mesh, componenthashes.meshes, CTYPE_MESH)
+		MACRO_CASE_GETCOMPONENTOFCTYPE(EntityRotator, componenthashes.entityRotators, CTYPE_ENTITYROTATOR)
+		MACRO_CASE_GETCOMPONENTOFCTYPE(PlayerController, componenthashes.playerControllers, CTYPE_PLAYERCONTROLLER)
+		MACRO_CASE_GETCOMPONENTOFCTYPE(CameraController, componenthashes.cameraControllers, CTYPE_CAMERACONTROLLER)
+		MACRO_CASE_GETCOMPONENTOFCTYPE(Collider, componenthashes.colliders, CTYPE_COLLIDER)
+		case CTYPE_ENTITY:
+			printf("Cannot use GetComponent to retrieve entities.");
+			return NULL;
 	}
 	return NULL;
 }
 
-// WORK ON ME
-bool ECS_removeComponent(Entity* entity, ComponentType componentType) {
+
+#define MACRO_CASE_REMOVECOMPONENTOFCTYPE(COMPONENTNAME, HASHNAME, CTYPE) \
+case CTYPE: \
+	COMPONENTNAME* rem ## COMPONENTNAME ## oval = NULL; \
+	HASH_FIND_INT((HASHNAME), &(entity->id), rem ## COMPONENTNAME ## oval); \
+	if (rem ## COMPONENTNAME ## oval != NULL) { \
+			HASH_DEL((HASHNAME), rem ## COMPONENTNAME ## oval); \
+			free(rem ## COMPONENTNAME ## oval); \
+			return 1; \
+	} \
+	break;
+/*
+ * Attempts to delete a component attached to an entity.
+ * @param entity
+ *		The entity to query.
+ * @param componentType
+ *		The type of component to remove.
+ * @return
+ *      1 if component was successfully removed; 0 if component was not found.
+ */
+int ECS_removeComponent(Entity* entity, ComponentType componentType) {
 	if (entity == NULL) {
-		return false;
+		return 0;
 	}
 	switch (componentType) {
-		case CTYPE_MESH:
-			Mesh* removal = NULL;
-			HASH_FIND_INT((componenthashes.meshes), &entity->id, removal);
-			if (removal != NULL) {
-				HASH_DEL((componenthashes.meshes), removal);
-				free(removal);
-				return true;
-			}
-			break;
-	
-		case CTYPE_COLLIDER:
-			return true;
+		MACRO_CASE_REMOVECOMPONENTOFCTYPE(Camera, componenthashes.cameras, CTYPE_CAMERA)
+		MACRO_CASE_REMOVECOMPONENTOFCTYPE(Transform, componenthashes.transforms, CTYPE_TRANSFORM)
+		MACRO_CASE_REMOVECOMPONENTOFCTYPE(Mesh, componenthashes.meshes, CTYPE_MESH)
+		MACRO_CASE_REMOVECOMPONENTOFCTYPE(EntityRotator, componenthashes.entityRotators, CTYPE_ENTITYROTATOR)
+		MACRO_CASE_REMOVECOMPONENTOFCTYPE(PlayerController, componenthashes.playerControllers, CTYPE_PLAYERCONTROLLER)
+		MACRO_CASE_REMOVECOMPONENTOFCTYPE(CameraController, componenthashes.cameraControllers, CTYPE_CAMERACONTROLLER)
+		MACRO_CASE_REMOVECOMPONENTOFCTYPE(Collider, componenthashes.colliders, CTYPE_COLLIDER)
+	case CTYPE_ENTITY:
+		printf("Entity components must be removed through the destroy function.");
 	}
-	return false;
+	return 0;
 }
 
-// WORK ON ME
-void* ECS_addComponent(Entity* entity, ComponentType componentType) {
 
+#define MACRO_CASE_ADDCOMPONENTOFCTYPE(COMPONENTNAME, CTYPE) \
+case CTYPE: \
+	ret = ECS_getComponent(entity, CTYPE) == NULL ? ECS_create ## COMPONENTNAME ## Component(entity->id, component_id_counter) : NULL; \
+	break;
+/*
+ * Creates and adds a component to an entity.
+ * @param entity
+ *		The entity to query.
+ * @param componentType
+ *		The type of component to add.
+ * @return
+ *      A pointer to the component if created successfully; NULL if entity already has component of the given type.
+ */
+void* ECS_addComponent(Entity* entity, ComponentType componentType) {
+	void* ret = NULL;
 	component_id_counter++;
 	switch (componentType) {
-		case CTYPE_MESH:
-			return ECS_createMeshComponent(entity->id, component_id_counter);
-		case CTYPE_COLLIDER:
-			return ECS_createColliderComponent(entity->id, component_id_counter);
-		case CTYPE_CAMERA:
-			return ECS_createCameraComponent(entity->id, component_id_counter);
-		case CTYPE_ENTITYROTATOR:
-			return ECS_createEntityRotatorComponent(entity->id, component_id_counter);
-		case CTYPE_PLAYERCONTROLLER:
-			return ECS_createPlayerControllerComponent(entity->id, component_id_counter);
+		MACRO_CASE_ADDCOMPONENTOFCTYPE(Mesh, CTYPE_MESH)
+		MACRO_CASE_ADDCOMPONENTOFCTYPE(Collider, CTYPE_COLLIDER)
+		MACRO_CASE_ADDCOMPONENTOFCTYPE(Camera, CTYPE_CAMERA)
+		MACRO_CASE_ADDCOMPONENTOFCTYPE(EntityRotator, CTYPE_ENTITYROTATOR)
+		MACRO_CASE_ADDCOMPONENTOFCTYPE(PlayerController, CTYPE_PLAYERCONTROLLER)
+		MACRO_CASE_ADDCOMPONENTOFCTYPE(CameraController, CTYPE_CAMERACONTROLLER)
+		case CTYPE_ENTITY:
+			printf("Entity components must be added through the instantiate function.\n");
+			return NULL;
+		case CTYPE_TRANSFORM:
+			printf("Transform components are already attached to entities by default.\n");
+			return NULL;
 	}
+	if (ret == NULL) {
+		printf("Entity already has component attached. Returning NULL.\n");
+	}
+	return ret;
 }
 
 
+/*
+ * Returns hash of all instances of a given type. Only used in very rare cases.
+ */
 void* ECS_getAllInstancesOfComponent(ComponentType ctype) {
 	switch (ctype) {
 		case CTYPE_CAMERA:
@@ -174,13 +240,24 @@ void* ECS_getAllInstancesOfComponent(ComponentType ctype) {
 }
 
 
+/*
+ * Finds an entity based on its id.
+ */
 Entity* ECS_getEntity(int id) {
 	Entity* ret = NULL;
 	HASH_FIND_INT((componenthashes.entities), &id, ret);
 	return ret;
 }
 
-
+#define MACRO_CASE_UPDATELISTENEROFCTYPE(COMPONENTNAME, CTYPE) \
+case CTYPE: \
+	ECS_update ## COMPONENTNAME ## Component(delta, updateListener); \
+	break;
+/*
+ * Runs all update functions across all subscribed components.
+ * @param delta
+ *		The time that has passed between the last frame and now.
+ */
 void ECS_runUpdates(float delta) {
 	struct EventListener* updateListener, *tmp;
 	HASH_ITER(hh, componenthashes.updateListeners, updateListener, tmp) {
@@ -197,7 +274,13 @@ void ECS_runUpdates(float delta) {
 	}
 }
 
-
+#define MACRO_CASE_LATEUPDATELISTENEROFCTYPE(COMPONENTNAME, CTYPE) \
+case CTYPE: \
+	ECS_lateupdate ## COMPONENTNAME ## Component(lateupdateListener); \
+	break;
+/*
+ * Runs all lateupdate functions across all subscribed components.
+ */
 void ECS_runLateUpdates() {
 	struct EventListener* lateupdateListener, * tmp;
 	HASH_ITER(hh, componenthashes.lateupdateListeners, lateupdateListener, tmp) {
@@ -212,7 +295,13 @@ void ECS_runLateUpdates() {
 	}
 }
 
-
+#define MACRO_CASE_STARTLISTENEROFCTYPE(COMPONENTNAME, CTYPE) \
+case CTYPE: \
+	ECS_start ## COMPONENTNAME ## Component(startListener); \
+	break;
+/*
+ * Runs all start functions across all subscribed components.
+ */
 void ECS_runStarts() {
 	struct EventListener* startListener, * tmp;
 	HASH_ITER(hh, componenthashes.startListeners, startListener, tmp) {
