@@ -2,13 +2,10 @@
 #include "ecs.h"
 #include "input.h"
 
-void PlayerController_init(int parent_id, int id, PlayerController* x) {
-	x->parent_id = parent_id;
-	x->id = id;
+void PlayerController_awake(PlayerController* x) {
+
 }
 
-/* This runs immediatedly after the component is created.
-*/
 void PlayerController_start(PlayerController* x) {
 	if (x->camera == NULL) {
 		x->camera = ECS_getComponent(ECS_getEntity(x->parent_id), CTYPE_CAMERA);
@@ -24,7 +21,6 @@ void PlayerController_update(float delta, PlayerController* x) {
 	}
 }
 
-void PlayerController_updatePointer(float delta, void* x) {
-	PlayerController* playerController = (PlayerController*)x;
-	PlayerController_update(delta, playerController);
+void PlayerController_lateupdate(PlayerController* x) {
+
 }

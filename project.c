@@ -121,12 +121,14 @@ void idle() {
 	deltaTime = dt;
 	cumulativeTime += deltaTime;
 
-	// Very first, awake components that need to be awoken
-	// Next, start functions that need to be started
-	// Next, update entities
-	ECS_runUpdatesOfType(deltaTime);
+	// First run start functions on any new components
+	ECS_runStarts();
+	// Next, run updates
+	ECS_runUpdates(deltaTime);
 	// Next, draw scene to the screen
 	glutPostRedisplay();
+	// Next, run late updates
+	ECS_runLateUpdates();
 	// Input buffer can now be cleared
 	Input_clearBuffer();
 	

@@ -9,6 +9,8 @@
 
 // https://gamedev.stackexchange.com/questions/172584/how-could-i-implement-an-ecs-in-c
 
+int component_id_counter = 0;
+
 typedef struct ComponentHashes {
 	struct Transform* transforms;
 	struct Entity* entities;
@@ -17,29 +19,68 @@ typedef struct ComponentHashes {
 	struct Camera* cameras;
 	struct EntityRotator* entityRotators;
 	struct PlayerController* playerControllers;
-	struct UpdateListener* updateListeners;
+	struct EventListener* updateListeners;
+	struct EventListener* startListeners;
+	struct EventListener* lateupdateListeners;
 	struct CameraController* cameraControllers;
 } ComponentHashes;
+static struct ComponentHashes componenthashes;
 
-static ComponentHashes componenthashes = {};
 
-int component_id_counter = 0;
+void ECS_createUpdateListener(void* component_ptr, int id, ComponentType ctype) {
+	struct EventListener* u = malloc(sizeof(struct EventListener));
+	u->component_ptr = component_ptr;
+	u->ctype = ctype;
+	u->id = id;
+	HASH_ADD_INT((componenthashes.updateListeners), id, u);
+}
+void ECS_createLateUpdateListener(void* component_ptr, int id, ComponentType ctype) {
+	struct EventListener* u = malloc(sizeof(struct EventListener));
+	u->component_ptr = component_ptr;
+	u->ctype = ctype;
+	u->id = id;
+	HASH_ADD_INT((componenthashes.lateupdateListeners), id, u);
+}
+void ECS_createStartListener(void* component_ptr, int id, ComponentType ctype) {
+	struct EventListener* u = malloc(sizeof(struct EventListener));
+	u->component_ptr = component_ptr;
+	u->ctype = ctype;
+	u->id = id;
+	HASH_ADD_INT((componenthashes.startListeners), id, u);
+}
 
-#define MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(COMPONENTNAME, HASHNAME) \
+
+#define MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(COMPONENTNAME, HASHNAME, CTYPE) \
+	void ECS_update ## COMPONENTNAME ## Component(float delta, EventListener* listener) { \
+		COMPONENTNAME ## _update(delta, (COMPONENTNAME*)listener->component_ptr); \
+	} \
+	void ECS_lateupdate ## COMPONENTNAME ## Component(EventListener* listener) { \
+		COMPONENTNAME ## _lateupdate((COMPONENTNAME*)listener->component_ptr); \
+	} \
+	void ECS_start ## COMPONENTNAME ## Component(EventListener* listener) { \
+		COMPONENTNAME ## _start((COMPONENTNAME*)listener->component_ptr); \
+	} \
+	\
     COMPONENTNAME* ECS_create ## COMPONENTNAME ## Component(int parent_id, int id) { \
-     struct COMPONENTNAME* x = malloc(sizeof(struct COMPONENTNAME)); \
-	 COMPONENTNAME ##_awake(x); \
-     x->parent_id = parent_id; x->id = id; \
-     HASH_ADD_INT((HASHNAME), parent_id, x);\
-     return x;\
-    }\
+    struct COMPONENTNAME* x = malloc(sizeof(struct COMPONENTNAME)); \
+	COMPONENTNAME ##_awake(x); \
+    x->parent_id = parent_id; \
+	x->id = id; \
+    HASH_ADD_INT((HASHNAME), parent_id, x);\
+	ECS_createUpdateListener(x, id, CTYPE);\
+	ECS_createStartListener(x, id, CTYPE);\
+	ECS_createLateUpdateListener(x, id, CTYPE); \
+    return x;\
+}
 
-// https://stackoverflow.com/questions/617554/override-a-function-call-in-c look into this for update functions and stuff
-MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(EntityRotator, componenthashes.entityRotators)
-MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(Transform, componenthashes.transforms)
-MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(Camera, componenthashes.cameras)
-MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(Mesh, componenthashes.meshes)
-MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(Collider, componenthashes.colliders)
+MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(EntityRotator, componenthashes.entityRotators, CTYPE_ENTITYROTATOR)
+MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(PlayerController, componenthashes.playerControllers, CTYPE_PLAYERCONTROLLER)
+MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(Transform, componenthashes.transforms, CTYPE_TRANSFORM)
+MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(Camera, componenthashes.cameras, CTYPE_CAMERA)
+MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(Mesh, componenthashes.meshes, CTYPE_MESH)
+MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(Collider, componenthashes.colliders, CTYPE_COLLIDER)
+MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(CameraController, componenthashes.cameraControllers, CTYPE_CAMERACONTROLLER)
+
 
 Entity* ECS_createEntity(int parent_id, int id) {
 	struct Entity* e = malloc(sizeof(struct Entity));
@@ -51,37 +92,13 @@ Entity* ECS_createEntity(int parent_id, int id) {
 	return e;
 }
 
-void ECS_createUpdateListener(void* component_ptr, ComponentType ctype) {
-	component_id_counter++;
-	struct UpdateListener* updateListener = malloc(sizeof(struct UpdateListener));
-	updateListener->component_ptr = component_ptr;
-	updateListener->id = component_id_counter;
-	switch(ctype) {
-		case CTYPE_PLAYERCONTROLLER:
-			updateListener->fun_ptr = &PlayerController_updatePointer;
-		default:
-			break;
-	}
-
-	HASH_ADD_INT((componenthashes.updateListeners), id, updateListener);
-}
-
-PlayerController* ECS_createPlayerController(int parent_id, int id) {
-	struct PlayerController* x = malloc(sizeof(struct PlayerController));
-	x->parent_id = parent_id;
-	x->id = id;
-	PlayerController_init(parent_id, id, x);
-	HASH_ADD_INT((componenthashes.playerControllers), parent_id, x);
-	ECS_createUpdateListener(x, CTYPE_PLAYERCONTROLLER);
-	return x;
-}
 
 Entity* ECS_instantiate() {
 	component_id_counter++;
 	return ECS_createEntity(0, component_id_counter);
 }
 
-
+// WORK ON ME
 void* ECS_getComponent(Entity* entity, ComponentType componentType) {
 	switch (componentType) {
 		case CTYPE_MESH:
@@ -100,6 +117,7 @@ void* ECS_getComponent(Entity* entity, ComponentType componentType) {
 	return NULL;
 }
 
+// WORK ON ME
 bool ECS_removeComponent(Entity* entity, ComponentType componentType) {
 	if (entity == NULL) {
 		return false;
@@ -139,7 +157,7 @@ void* ECS_addComponent(Entity* entity, ComponentType componentType) {
 		case CTYPE_ENTITYROTATOR:
 			return ECS_createEntityRotatorComponent(entity->id, component_id_counter);
 		case CTYPE_PLAYERCONTROLLER:
-			return ECS_createPlayerController(entity->id, component_id_counter);
+			return ECS_createPlayerControllerComponent(entity->id, component_id_counter);
 		default:
 			printf("Unrecognized component, or component cannot be added.\n");
 			return NULL;
@@ -164,10 +182,61 @@ Entity* ECS_getEntity(int id) {
 	return ret;
 }
 
-void ECS_runUpdatesOfType(float delta) {
-	struct UpdateListener* updateListener = malloc(sizeof(UpdateListener) * HASH_COUNT(componenthashes.updateListeners));
-	for(updateListener = componenthashes.updateListeners; updateListener != NULL; updateListener = updateListener->hh.next) {
-		updateListener->fun_ptr(delta, updateListener->component_ptr);
+#define MACRO_CASE_UPDATELISTENEROFCTYPE(COMPONENTNAME, CTYPE) \
+case CTYPE: \
+	ECS_update ## COMPONENTNAME ## Component(delta, updateListener); \
+	break;
+
+#define MACRO_CASE_LATEUPDATELISTENEROFCTYPE(COMPONENTNAME, CTYPE) \
+case CTYPE: \
+	ECS_lateupdate ## COMPONENTNAME ## Component(lateupdateListener); \
+	break;
+
+#define MACRO_CASE_STARTLISTENEROFCTYPE(COMPONENTNAME, CTYPE) \
+case CTYPE: \
+	ECS_start ## COMPONENTNAME ## Component(startListener); \
+	break;
+
+void ECS_runUpdates(float delta) {
+	struct EventListener* updateListener, *tmp;
+	HASH_ITER(hh, componenthashes.updateListeners, updateListener, tmp) {
+		switch (updateListener->ctype) {
+			MACRO_CASE_UPDATELISTENEROFCTYPE(PlayerController, CTYPE_PLAYERCONTROLLER)
+			MACRO_CASE_UPDATELISTENEROFCTYPE(CameraController, CTYPE_CAMERACONTROLLER)
+			MACRO_CASE_UPDATELISTENEROFCTYPE(EntityRotator, CTYPE_ENTITYROTATOR)
+			default:
+				//printf("Unused update function for CTYPE ID %d. Deleting listener.\n", (int)updateListener->ctype);
+				HASH_DEL(componenthashes.updateListeners, updateListener);
+				free(updateListener);
+				break;
+		}
 	}
-	free(updateListener);
+}
+
+void ECS_runStarts() {
+	struct EventListener* startListener, * tmp;
+	HASH_ITER(hh, componenthashes.startListeners, startListener, tmp) {
+		switch (startListener->ctype) {
+			MACRO_CASE_STARTLISTENEROFCTYPE(CameraController, CTYPE_CAMERACONTROLLER)
+			default:
+				//printf("Unused start function for CTYPE ID %d.\n", (int)startListener->ctype);
+				break;
+		}
+		HASH_DEL(componenthashes.startListeners, startListener);
+		free(startListener);
+	}
+}
+
+void ECS_runLateUpdates() {
+	struct EventListener* lateupdateListener, * tmp;
+	HASH_ITER(hh, componenthashes.lateupdateListeners, lateupdateListener, tmp) {
+		switch (lateupdateListener->ctype) {
+			//MACRO_CASE_LATEUPDATELISTENEROFCTYPE(CameraController, CTYPE_CAMERACONTROLLER)
+		default:
+			//printf("Unused lateUpdate function for CTYPE ID %d. Deleting listener.\n", (int)lateupdateListener->ctype);
+			HASH_DEL(componenthashes.lateupdateListeners, lateupdateListener);
+			free(lateupdateListener);
+			break;
+		}
+	}
 }

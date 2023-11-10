@@ -12,25 +12,12 @@ typedef enum ComponentType {
 	CTYPE_ENTITYROTATOR, CTYPE_PLAYERCONTROLLER, CTYPE_CAMERACONTROLLER
 } ComponentType;
 
-typedef struct UpdateListener {
-	void (*fun_ptr)(float, void*);
+typedef struct EventListener {
 	void* component_ptr;
-
-	MACRO_ITERABLEHASHFIELDS
-} UpdateListener;
-
-typedef struct ComponentReferences {
-	ComponentType type;
-	void (*fun_ptr)(int, int);
-	void (*start_ptr)(void*);
-	void (*update_ptr)(float, void*);
-} ComponentReferences;
-
-typedef struct StartListener {
-	void(*fun_ptr);
+	ComponentType ctype;
 
 	MACRO_COMPONENTFIELDS
-} StartListener;
+} EventListener;
 
 typedef struct Entity {
 	Transform* transform;
@@ -44,7 +31,9 @@ Entity* ECS_getEntity(int parent_id);
 void* ECS_getComponent(Entity* entity, ComponentType componentType);
 bool ECS_removeComponent(Entity* entity, ComponentType componentType);
 void* ECS_addComponent(Entity* entity, ComponentType componentType);
-void ECS_runUpdatesOfType(float delta);
+void ECS_runUpdates(float delta);
+void ECS_runLateUpdates();
+void ECS_runStarts();
 void* ECS_getAllInstancesOfComponent(ComponentType ctype);
 
 #endif
