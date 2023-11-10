@@ -1,0 +1,76 @@
+C:/Users/Doggp/Desktop/university/22023sem2/PestEngine
+#define MACRO_PLAYERCONTROLLERU PlayerController
+#define MACRO_PLAYERCONTROLLERL playerController
+#define MACRO_PLACEHOLDER SignalName1
+//#define MAKE_FN_NAME(X,Y) X* ECS_create X (int parent_id, int id) {\
+//}
+
+typedef struct PlayerController {
+
+} PlayerController;
+
+#define GENERATE_FUNC(OBJECT) \
+    void create_ ##  OBJECT ## _(int parent_id, int id) { \
+    struct OBJECT* x = malloc(sizeof(struct OBJECT)); x->parent_id = parent_id; x->id = id; \
+    }
+
+GENERATE_FUNC(PlayerController)
+//MAKE_FN_NAME(MACRO_PLAYERCONTROLLERU, MACRO_PLAYERCONTROLLERL)
+
+
+
+# Main target
+all: $(EXE)
+
+#  Msys/MinGW
+ifeq "$(OS)" "Windows_NT"
+CFLG=-O3 -Wall -DUSEGLEW
+LIBS=-lfreeglut -lglew32 -lglu32 -lopengl32 -lm
+CLEAN=rm -f *.exe *.o *.a
+else
+#  OSX
+ifeq "$(shell uname)" "Darwin"
+RES=$(shell uname -r|sed -E 's/(.).*/\1/'|tr 12 21)
+CFLG=-O3 -Wall -Wno-deprecated-declarations -DRES=$(RES)
+LIBS=-framework GLUT -framework OpenGL
+#  Linux/Unix/Solaris
+else
+CFLG=-O3 -Wall
+LIBS=-lglut -lGLU -lGL -lm
+endif
+#  OSX/Linux/Unix/Solaris
+CLEAN=rm -f $(EXE) *.o *.a
+endif
+
+# Dependencies
+project.o: project.c CSCIx229.h
+fatal.o: fatal.c CSCIx229.h
+errcheck.o: errcheck.c CSCIx229.h
+print.o: print.c CSCIx229.h
+loadtexbmp.o: loadtexbmp.c CSCIx229.h
+loadobj.o: loadobj.c CSCIx229.h
+projection.o: projection.c CSCIx229.h
+
+
+vector3.o: vector3.c vector3.h
+Quaternion.o: Quaternion.c Quaternion.h vector3.h
+ecs.o: ecs.c ecs.h Quaternion.h vector3.h
+# uthash.o: uthash.h
+
+#  Create archive
+CSCIx229.a:fatal.o errcheck.o print.o loadtexbmp.o loadobj.o projection.o
+	ar -rcs $@ $^
+
+# Compile rules
+.c.o:
+	gcc -c $(CFLG)  $<
+.cpp.o:
+	g++ -c $(CFLG)  $<
+
+#  Link
+project:project.o   CSCIx229.a ecs.o vector3.o Quaternion.o
+	gcc $(CFLG) -o $@ $^  $(LIBS)
+
+#  Clean
+clean:
+	$(CLEAN)

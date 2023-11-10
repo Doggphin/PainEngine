@@ -1,0 +1,17 @@
+#include #COMPONENTHEADER#
+
+void #COMPONENTNAME#_awake(#COMPONENTNAME#* c) {
+
+}
+
+void #COMPONENTNAME#_start(#COMPONENTNAME#* c) {
+
+}
+
+void #COMPONENTNAME#_update(float delta, #COMPONENTNAME#* c) {
+
+}
+
+void #COMPONENTNAME#_lateupdate(#COMPONENTNAME#* c) {
+
+}

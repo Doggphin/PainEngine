@@ -1,0 +1,20 @@
+#ifndef COMP_#COMPONENTNAMEUPPER#
+#define COMP_#COMPONENTNAMEUPPER#
+
+#include "macros.h"
+
+typedef struct #COMPONENTNAME# {
+	// Insert fields here
+
+
+	MACRO_COMPONENTFIELDS	// Generates necessary fields for all components
+} #COMPONENTNAME#;
+
+void #COMPONENTNAME#_awake(#COMPONENTNAME#* c);
+void #COMPONENTNAME#_start(#COMPONENTNAME#* c);
+void #COMPONENTNAME#_update(float t, #COMPONENTNAME#* c);
+void #COMPONENTNAME#_lateupdate(#COMPONENTNAME#* c);
+
+// Insert functions here
+
+#endif
