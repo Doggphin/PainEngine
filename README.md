@@ -1,2 +1,4 @@
 # PainEngine
-A game engine in C made as a university project.
+A game engine in C I'm making as a university project.
+
+[Mascot](icon.png)
