@@ -116,8 +116,6 @@ void* ECS_getComponent(Entity* entity, ComponentType componentType) {
 			HASH_FIND_INT((componenthashes.colliders), &(entity->id), coll);
 			return coll;
 			break;
-		default:
-			printf("Unrecognized component. \n");
 	}
 	return NULL;
 }
@@ -140,16 +138,11 @@ bool ECS_removeComponent(Entity* entity, ComponentType componentType) {
 	
 		case CTYPE_COLLIDER:
 			return true;
-
-		default:
-			printf("Unrecognized component.\n");
-			return false;
-			break;
 	}
 	return false;
 }
 
-
+// WORK ON ME
 void* ECS_addComponent(Entity* entity, ComponentType componentType) {
 
 	component_id_counter++;
@@ -164,10 +157,6 @@ void* ECS_addComponent(Entity* entity, ComponentType componentType) {
 			return ECS_createEntityRotatorComponent(entity->id, component_id_counter);
 		case CTYPE_PLAYERCONTROLLER:
 			return ECS_createPlayerControllerComponent(entity->id, component_id_counter);
-		default:
-			printf("Unrecognized component, or component cannot be added.\n");
-			return NULL;
-			break;
 	}
 }
 
@@ -179,6 +168,7 @@ void* ECS_getAllInstancesOfComponent(ComponentType ctype) {
 		case CTYPE_MESH:
 			return componenthashes.meshes;
 		default:
+			printf("This component hash has no reason to be iterated over and has not been implemented..");
 			return NULL;
 	}
 }

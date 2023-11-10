@@ -4,7 +4,6 @@
 #include "macros.h"
 #include "comp_transform.h"
 #include <stdlib.h>
-#include <assert.h>
 #include <math.h>
 
 typedef enum ComponentType {

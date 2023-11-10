@@ -4,8 +4,8 @@
 #include "ecs.h"
 #include "uthash.h"
 #include "input.h"
-#include <math.h>
 #include "includeallcomps.h"
+#include <math.h>
 
 
 double DIM = 2;
@@ -39,8 +39,7 @@ void display() {
 	int i = 0;
 	for (c = cameras; c != NULL; c = c->hh.next) {
 		if (i != 0) {
-			printf("Multiple cameras being used.");
-
+			printf("Multiple cameras being used.\n");
 		}
 		glLoadIdentity();
 		Entity* e = ECS_getEntity(c->parent_id);
@@ -48,7 +47,7 @@ void display() {
 		//current_dim = c->dim;
 		current_fov = c->fov;
 		glMatrixMode(GL_PROJECTION);
-		Project(current_fov, asp, current_dim);			// this might have a problem?
+		Project(current_fov, asp, current_dim);
 		Vector3* position = &(e->transform->position);
 		Vector3* positionLookTemp = Vector3_createPreset(FORWARD);
 		Vector3* positionLook = Quaternion_createRotated(&(e->transform->rotation), positionLookTemp);
@@ -68,7 +67,6 @@ void display() {
 
 		struct Entity* e = ECS_getEntity(m->parent_id);
 		float* qm = Quaternion_toMat4(&(e->transform->rotation));
-		// Could probably combine these matrices
 		GLdouble rotMatrix[16] = {qm[0], qm[1], qm[2], qm[3], qm[4], qm[5], qm[6], qm[7], qm[8], qm[9], qm[10], qm[11], qm[12], qm[13], qm[14], qm[15]};
 		free(qm);
 		Vector3* pos = &(e->transform->position);
@@ -107,27 +105,24 @@ void display() {
 }
 
 void idle() {
+	// Do time thingies
 	static double t0 = -1.;
 	double dt, t = glutGet(GLUT_ELAPSED_TIME) / 1000.0;
 	if (t0 < 0.0)
 	  t0 = t;
 	dt = t - t0;
 	t0 = t;
-
 	deltaTime = dt;
 	cumulativeTime += deltaTime;
 
-	// First run start functions on any new components
-	ECS_runStarts();
-	// Next, run updates
-	ECS_runUpdates(deltaTime);
-	// Next, draw scene to the screen
-	glutPostRedisplay();
-	// Next, run late updates
-	ECS_runLateUpdates();
-	// Input buffer can now be cleared
-	Input_clearBuffer();
+	// Run game loop step
+	ECS_runStarts();				// First run start functions on any newly instantiated components
+	ECS_runUpdates(deltaTime);		// Next, run updates on all subscribed components
+	glutPostRedisplay();			// Next, draw scene to the screen
+	ECS_runLateUpdates();			// Next, run late updates on all subscribed components
+	Input_clearBuffer();			// Clear buffered inputs for next frame
 	
+	// Illegal activities below this line
 	Vector3 forward;
 	Vector3_preset(FORWARD, &forward);
 	Vector3 rotator;
@@ -155,23 +150,7 @@ void reshape(int width, int height) {
 }
 
 
-int main(int argc, char* argv[]) {
-	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
-	glutInitWindowSize(windowLength, windowHeight);
-	glutCreateWindow("PainEngine");
-#ifdef USEGLEW
-	//  Initialize GLEW
-	if (glewInit() != GLEW_OK) Fatal("Error initializing GLEW\n");
-#endif
-	glutDisplayFunc(display);
-	glutReshapeFunc(reshape);
-	glutKeyboardFunc(Input_setKeyDown);
-	glutKeyboardUpFunc(Input_setKeyUp);
-	glutPassiveMotionFunc(passive);
-	glutIdleFunc(idle);
-	ErrCheck("init");
-
+int initScene() {
 	Entity* player = ECS_instantiate();
 	Vector3_set(2, 0.5, 0, &(player->transform->position));
 	ECS_addComponent(player, CTYPE_COLLIDER);
@@ -192,6 +171,27 @@ int main(int argc, char* argv[]) {
 	m2->mesh_type = MESHTYPE_TEAPOT;
 
 	testEntity = player;
+}
+
+
+int main(int argc, char* argv[]) {
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
+	glutInitWindowSize(windowLength, windowHeight);
+	glutCreateWindow("PainEngine");
+#ifdef USEGLEW
+	//  Initialize GLEW
+	if (glewInit() != GLEW_OK) Fatal("Error initializing GLEW\n");
+#endif
+	glutDisplayFunc(display);
+	glutReshapeFunc(reshape);
+	glutKeyboardFunc(Input_setKeyDown);
+	glutKeyboardUpFunc(Input_setKeyUp);
+	glutPassiveMotionFunc(passive);
+	glutIdleFunc(idle);
+	ErrCheck("init");
+
+	initScene();
 
 	glutMainLoop();
 	return 0;
