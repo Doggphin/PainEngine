@@ -106,12 +106,6 @@ Entity* ECS_createEntity(int parent_id, int id) {
 	HASH_ADD_INT((componenthashes.entities), id, e);
 	return e;
 }
-/*
- * Creates a new entity.
- * All entities are instantiated with a transform component.
- * @return
- *      A pointer to the created entity.
- */
 Entity* ECS_instantiate() {
 	component_id_counter++;
 	return ECS_createEntity(0, component_id_counter);
@@ -123,15 +117,6 @@ case CTYPE: \
 	COMPONENTNAME* ge ## COMPONENTNAME ## t; \
 	HASH_FIND_INT((HASHNAME), &(entity->id), ge ## COMPONENTNAME ## t); \
 	return ge ## COMPONENTNAME ## t;
-/*
- * Queries a component for a component and returns it.
- * @param entity
- *		The entity to query.
- * @param componentType
- *		The type of component to search for.
- * @return
- *      A pointer to the component if found, otherwise NULL.
- */
 void* ECS_getComponent(Entity* entity, ComponentType componentType) {
 	switch (componentType) {
 		MACRO_CASE_GETCOMPONENTOFCTYPE(Camera, componenthashes.cameras, CTYPE_CAMERA)
@@ -159,15 +144,6 @@ case CTYPE: \
 			return 1; \
 	} \
 	break;
-/*
- * Attempts to delete a component attached to an entity.
- * @param entity
- *		The entity to query.
- * @param componentType
- *		The type of component to remove.
- * @return
- *      1 if component was successfully removed; 0 if component was not found.
- */
 int ECS_removeComponent(Entity* entity, ComponentType componentType) {
 	if (entity == NULL) {
 		return 0;
@@ -191,15 +167,6 @@ int ECS_removeComponent(Entity* entity, ComponentType componentType) {
 case CTYPE: \
 	ret = ECS_getComponent(entity, CTYPE) == NULL ? ECS_create ## COMPONENTNAME ## Component(entity->id, component_id_counter) : NULL; \
 	break;
-/*
- * Creates and adds a component to an entity.
- * @param entity
- *		The entity to query.
- * @param componentType
- *		The type of component to add.
- * @return
- *      A pointer to the component if created successfully; NULL if entity already has component of the given type.
- */
 void* ECS_addComponent(Entity* entity, ComponentType componentType) {
 	void* ret = NULL;
 	component_id_counter++;
@@ -224,9 +191,6 @@ void* ECS_addComponent(Entity* entity, ComponentType componentType) {
 }
 
 
-/*
- * Returns hash of all instances of a given type. Only used in very rare cases.
- */
 void* ECS_getAllInstancesOfComponent(ComponentType ctype) {
 	switch (ctype) {
 		case CTYPE_CAMERA:
@@ -240,9 +204,6 @@ void* ECS_getAllInstancesOfComponent(ComponentType ctype) {
 }
 
 
-/*
- * Finds an entity based on its id.
- */
 Entity* ECS_getEntity(int id) {
 	Entity* ret = NULL;
 	HASH_FIND_INT((componenthashes.entities), &id, ret);
@@ -253,11 +214,6 @@ Entity* ECS_getEntity(int id) {
 case CTYPE: \
 	ECS_update ## COMPONENTNAME ## Component(delta, updateListener); \
 	break;
-/*
- * Runs all update functions across all subscribed components.
- * @param delta
- *		The time that has passed between the last frame and now.
- */
 void ECS_runUpdates(float delta) {
 	struct EventListener* updateListener, *tmp;
 	HASH_ITER(hh, componenthashes.updateListeners, updateListener, tmp) {
@@ -278,9 +234,6 @@ void ECS_runUpdates(float delta) {
 case CTYPE: \
 	ECS_lateupdate ## COMPONENTNAME ## Component(lateupdateListener); \
 	break;
-/*
- * Runs all lateupdate functions across all subscribed components.
- */
 void ECS_runLateUpdates() {
 	struct EventListener* lateupdateListener, * tmp;
 	HASH_ITER(hh, componenthashes.lateupdateListeners, lateupdateListener, tmp) {
@@ -299,9 +252,6 @@ void ECS_runLateUpdates() {
 case CTYPE: \
 	ECS_start ## COMPONENTNAME ## Component(startListener); \
 	break;
-/*
- * Runs all start functions across all subscribed components.
- */
 void ECS_runStarts() {
 	struct EventListener* startListener, * tmp;
 	HASH_ITER(hh, componenthashes.startListeners, startListener, tmp) {
