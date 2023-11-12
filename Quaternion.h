@@ -34,13 +34,15 @@
  */
 typedef struct Quaternion {
     float w;       /**< Scalar part */
-    float v[3];    /**< Vector part */
+    float x;
+    float y;
+    float z;    /**< Vector part */
 } Quaternion;
 
 /**
  * Sets the given values to the output quaternion.
  */
-void Quaternion_set(float w, float v1, float v2, float v3, Quaternion* output);
+void Quaternion_set(float w, float x, float y, float z, Quaternion* output);
 
 /**
  * Sets quaternion to its identity.
@@ -158,3 +160,7 @@ void Quaternion_fromToRotation(Vector3* from, Vector3* to, Quaternion* output);
 void Quaternion_print(Quaternion* q);
 
 float* Quaternion_toMat4(Quaternion* q);
+
+void Quaternion_slerpP(Quaternion* a, Quaternion* b, float t, Quaternion* output);
+void Quaternion_slerpUnclamped(Quaternion* a, Quaternion* b, float t, Quaternion* output);
+void Quaternion_lookRotation(Vector3* forward, Vector3* up, Quaternion* out);

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h>
+#include <stdio.h>
 
 void Vector3_set(float x, float y, float z, Vector3* output) {
 	assert(output != NULL);
@@ -10,30 +11,31 @@ void Vector3_set(float x, float y, float z, Vector3* output) {
 	output->z = z;
 }
 
-void Vector3_preset(VectorPreset dir, Vector3* output) {
+void Vector3_preset(Vector3Preset dir, Vector3* output) {
 	assert(output != NULL);
 	switch (dir) {
-	case UP:
+	case VECTOR3_UP:
 		Vector3_set(0, 1, 0, output);
 		return;
-	case FORWARD:
+	case VECTOR3_FORWARD:
 		Vector3_set(0, 0, -1, output);
 		return;
-	case RIGHT:
+	case VECTOR3_RIGHT:
 		Vector3_set(1, 0, 0, output);
 		return;
-	case BACKWARD:
+	case VECTOR3_BACKWARD:
 		Vector3_set(0, 0, 1, output);
 		return;
-	case LEFT:
+	case VECTOR3_LEFT:
 		Vector3_set(1, 0, 0, output);
 		return;
-	case DOWN:
+	case VECTOR3_DOWN:
 		Vector3_set(0, -1, 0, output);
 		return;
-	case ONE:
+	case VECTOR3_ONE:
 		Vector3_set(1, 1, 1, output);
-	case ZERO:
+		return;
+	case VECTOR3_ZERO:
 		Vector3_set(0, 0, 0, output);
 		return;
 	default:
@@ -47,7 +49,7 @@ Vector3* Vector3_create(float x, float y, float z) {
 	return ret;
 }
 
-Vector3* Vector3_createPreset(VectorPreset dir) {
+Vector3* Vector3_createPreset(Vector3Preset dir) {
 	Vector3* ret = malloc(sizeof(Vector3));
 	Vector3_preset(dir, ret);
 	return ret;
@@ -92,7 +94,7 @@ void Vector3_copy(Vector3* v, Vector3* output) {
 	Vector3_set(v->x, v->y, v->z, output);
 }
 
-bool Vector3_equal(Vector3* v1, Vector3* v2) {
+int Vector3_equal(Vector3* v1, Vector3* v2) {
 	return fabs(v1->x - v2->x) <= VECTOR3_EPS &&
 		fabs(v1->y - v2->y) <= VECTOR3_EPS &&
 		fabs(v1->z - v2->z) <= VECTOR3_EPS;
@@ -109,6 +111,10 @@ float Vector3_magnitude(Vector3* v) {
 void Vector3_normalize(Vector3* v, Vector3* output) {
 	assert(output != NULL);
 	Vector3_div(v, Vector3_magnitude(v), output);
+}
+
+void Vector3_normalizeDirect(Vector3* v) {
+	Vector3_normalize(v, v);
 }
 
 void Vector3_abs(Vector3* v, Vector3* output) {
@@ -173,7 +179,7 @@ void Vector3_orthogonal(Vector3* v, Vector3* output) {
 	float z = abs(v->z);
 
 	Vector3 other;
-	Vector3_preset(x < y ? (x < z ? RIGHT : UP) : (y < z ? BACKWARD : UP), &other);
+	Vector3_preset(x < y ? (x < z ? VECTOR3_RIGHT : VECTOR3_UP) : (y < z ? VECTOR3_BACKWARD : VECTOR3_UP), &other);
 	Vector3_cross(v, &other, output);
 }
 

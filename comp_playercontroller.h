@@ -1,15 +1,13 @@
 #ifndef COMP_PLAYERCONTROLLER
 #define COMP_PLAYERCONTROLLER
 
-#include "comp_camera.h"
+#include "comp_cameracontroller.h"
 #include "ecs.h"
+#include "vector2.h"
 
 typedef struct PlayerController {
-	float lookX;
-	float lookY;
-	float joystickX;
-	float joystickY;
-	Camera* camera;
+	CameraController* cc;
+	Vector3 velocity;
 
 	MACRO_COMPONENTFIELDS
 } PlayerController;

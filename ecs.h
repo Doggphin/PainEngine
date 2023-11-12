@@ -32,9 +32,9 @@ struct Entity {
 };
 
 struct Transform {
-	Vector3 position;
-	Quaternion rotation;
-	Vector3 scale;
+	struct Vector3 position;
+	struct Quaternion rotation;
+	struct Vector3 scale;
 	int relative;
 
 	MACRO_COMPONENTFIELDS

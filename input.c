@@ -1,9 +1,16 @@
 #include "input.h"
 #include "CSCIx229.h"
+#include "window.h"
+#include <assert.h>
 
-static struct Input_keysPressed current_inputs;
-static struct Input_keysPressed buffered_inputs;
-static const struct Input_keysPressed empty_inputs;
+static struct Input_inputMap current_inputs;
+static struct Input_inputMap buffered_inputs;
+static const struct Input_inputMap empty_inputs;
+
+static struct Vector2 mousePosition;
+static struct Vector2 mouseDeltaBuffer;
+
+int lockCursor = 1;
 
 #define MACRO_KEYCASE(A, B) {\
 	case A:\
@@ -11,7 +18,7 @@ static const struct Input_keysPressed empty_inputs;
 }
 
 void Input_setKeyValue(Input_Keycode keycode, int value, int buffered) {
-	Input_keysPressed* selected = buffered ? &buffered_inputs : &current_inputs;
+	Input_inputMap* selected = buffered ? &buffered_inputs : &current_inputs;
 
 	if (keycode == KEYCODE_UNUSED) {
 		return;
@@ -97,15 +104,15 @@ void Input_setKeyValue(Input_Keycode keycode, int value, int buffered) {
 		case KEYCODE_Z:
 			selected->z = value;
 			break;
+		MACRO_KEYCASE(KEYCODE_SPACE, selected->space)
 		default:
 			printf("Unimplemented setInput return for given keycode\n");
 			break;
 	}
 }
 
-
 int Input_isKeyDownSwitch(Input_Keycode key, int buffered) {
-	Input_keysPressed* selected = buffered ? &buffered_inputs : &current_inputs;
+	Input_inputMap* selected = buffered ? &buffered_inputs : &current_inputs;
 
 	switch (key) {
 		case KEYCODE_ESC:
@@ -162,6 +169,8 @@ int Input_isKeyDownSwitch(Input_Keycode key, int buffered) {
 			return selected->y;
 		case KEYCODE_Z:
 			return selected->z;
+		case KEYCODE_SPACE:
+			return selected->space;
 		default:
 			printf("Unimplemented getInput return for given keycode\n");
 			return 0;
@@ -169,22 +178,52 @@ int Input_isKeyDownSwitch(Input_Keycode key, int buffered) {
 }
 
 
-int Input_isKeyDownBuffered(Input_Keycode key) {
+int Input_getKeyBuffered(Input_Keycode key) {
 	return Input_isKeyDownSwitch(key, 1);
 }
-int Input_isKeyDown(Input_Keycode key) {
+int Input_getKey(Input_Keycode key) {
 	return Input_isKeyDownSwitch(key, 0);
 }
 
+#define CHARTOKEYCODECASE(UPPER, LOWER, KEYCODE) {\
+	case UPPER:\
+	case LOWER:\
+		return KEYCODE;\
+}
+#define CHARTOKEYCODECASESIMP(KEY, KEYCODE) {\
+	case KEY:\
+		return KEYCODE;\
+}
 
 Input_Keycode Input_charToKeycode(unsigned char ch) {
 	switch (ch) {
-		case 'a':
-		case 'A':
-			return KEYCODE_A;
-		case 'b':
-		case 'B':
-			return KEYCODE_B;
+		CHARTOKEYCODECASE('A', 'a', KEYCODE_A);
+		CHARTOKEYCODECASE('B', 'b', KEYCODE_B);
+		CHARTOKEYCODECASE('C', 'c', KEYCODE_C);
+		CHARTOKEYCODECASE('D', 'd', KEYCODE_D);
+		CHARTOKEYCODECASE('E', 'e', KEYCODE_E);
+		CHARTOKEYCODECASE('F', 'f', KEYCODE_F);
+		CHARTOKEYCODECASE('G', 'g', KEYCODE_G);
+		CHARTOKEYCODECASE('H', 'h', KEYCODE_H);
+		CHARTOKEYCODECASE('I', 'i', KEYCODE_I);
+		CHARTOKEYCODECASE('J', 'j', KEYCODE_J);
+		CHARTOKEYCODECASE('K', 'k', KEYCODE_K);
+		CHARTOKEYCODECASE('L', 'l', KEYCODE_L);
+		CHARTOKEYCODECASE('M', 'm', KEYCODE_M);
+		CHARTOKEYCODECASE('N', 'n', KEYCODE_N);
+		CHARTOKEYCODECASE('O', 'o', KEYCODE_O);
+		CHARTOKEYCODECASE('P', 'p', KEYCODE_P);
+		CHARTOKEYCODECASE('Q', 'q', KEYCODE_Q);
+		CHARTOKEYCODECASE('R', 'r', KEYCODE_R);
+		CHARTOKEYCODECASE('S', 's', KEYCODE_S);
+		CHARTOKEYCODECASE('T', 't', KEYCODE_T);
+		CHARTOKEYCODECASE('U', 'u', KEYCODE_U);
+		CHARTOKEYCODECASE('V', 'v', KEYCODE_V);
+		CHARTOKEYCODECASE('W', 'w', KEYCODE_W);
+		CHARTOKEYCODECASE('X', 'x', KEYCODE_X);
+		CHARTOKEYCODECASE('Y', 'y', KEYCODE_Y);
+		CHARTOKEYCODECASE('Z', 'z', KEYCODE_Z);
+		CHARTOKEYCODECASESIMP(39, KEYCODE_SPACE)
 		case 27:
 			return KEYCODE_ESC;
 		default:
@@ -192,8 +231,8 @@ Input_Keycode Input_charToKeycode(unsigned char ch) {
 	}
 }
 
-void Input_clearBuffer() {
-	buffered_inputs = empty_inputs;
+void Input_setBufferToCurrent() {
+	buffered_inputs = current_inputs;
 }
 
 void Input_setKeyDown(unsigned char ch, int x, int y) {
@@ -202,7 +241,66 @@ void Input_setKeyDown(unsigned char ch, int x, int y) {
 	Input_setKeyValue(keycode, 1, 1);
 }
 
-void Input_setKeyUp(unsigned char ch, int x, int y)
-{
+void Input_setKeyUp(unsigned char ch, int x, int y) {
 	Input_setKeyValue(Input_charToKeycode(ch), 0, 0);
+}
+
+
+void Input_setMousePosition(Vector2* newPos) {
+	Vector2_copy(newPos, &mousePosition);
+}
+
+void Input_clearMousePosition() {
+	Vector2_preset(VECTOR2_ZERO, &mousePosition);
+}
+
+void Input_getMousePosition(Vector2* output) {
+	Vector2_copy(&mousePosition, output);
+}
+
+void Input_getMouseDelta(Vector2* output) {
+	Vector2_copy(&mouseDeltaBuffer, output);
+}
+
+void Input_addMouseDelta(Vector2* delta) {
+	Vector2_addDirect(delta, &mouseDeltaBuffer);
+}
+
+void Input_clearMouseDelta() {
+	Vector2_preset(VECTOR2_ZERO, &mouseDeltaBuffer);
+}
+
+void Input_passive(int x, int y) {
+	struct Vector2 windowSize;
+	Window_getWindowSize(&windowSize);
+
+	int relativeMouseX = x - windowSize.x / 2;
+	int relativeMouseY = y - windowSize.y / 2;
+	Vector2_set(x, y, &mousePosition);
+	if (lockCursor) {
+		Vector2_addDirect(&(Vector2) { relativeMouseX, relativeMouseY }, &mouseDeltaBuffer);
+		glutWarpPointer(windowSize.x / 2, windowSize.y / 2);
+		Input_clearMousePosition();
+	}
+	else {
+		Vector2_set(relativeMouseX, relativeMouseY, &mousePosition);
+	} 
+}
+
+void Input_setCursorLocked(int locked) {
+	lockCursor = locked;
+	glutSetCursor(locked ? GLUT_CURSOR_NONE : GLUT_CURSOR_LEFT_ARROW);
+}
+
+void Input_getJoystick(Input_Keycode up, Input_Keycode right, Input_Keycode down, Input_Keycode left, int buffered, Vector2* output) {
+	Vector2_set(Input_isKeyDownSwitch(right, buffered) - Input_isKeyDownSwitch(left, buffered), Input_isKeyDownSwitch(up, buffered) - Input_isKeyDownSwitch(down, buffered), output);
+	assert(output != NULL);
+}
+
+void Input_getJoystickNormalized(Input_Keycode up, Input_Keycode right, Input_Keycode down, Input_Keycode left, int buffered, Vector2* output) {
+	assert(output != NULL);
+	Input_getJoystick(up, right, down, left, buffered, output);
+	if(fabsf(output->x) == 1 && fabsf(output->y) == 1) {
+		Vector2_multiplyDirect(0.7071, output);
+	}
 }

@@ -30,8 +30,8 @@ static struct ComponentHashes componenthashes;
 
 
 void Transform_awake(Transform* x) {
-	Vector3_preset(ZERO, &x->position);
-	Vector3_preset(ONE, &x->scale);
+	Vector3_preset(VECTOR3_ZERO, &x->position);
+	Vector3_preset(VECTOR3_ONE, &x->scale);
 	Quaternion_setIdentity(&x->rotation);
 	x->relative = 1;
 }
@@ -142,11 +142,11 @@ void ECS_createStartListener(void* component_ptr, int id, ComponentType ctype) {
 	\
     COMPONENTNAME* ECS_create ## COMPONENTNAME ## Component(Entity* entity, int id) { \
     struct COMPONENTNAME* x = malloc(sizeof(struct COMPONENTNAME)); \
-	COMPONENTNAME ##_awake(x); \
     x->parent_id = entity->id; \
 	x->id = id; \
 	x->entity = entity; \
 	x->enabled = 1; \
+	COMPONENTNAME ##_awake(x); \
     HASH_ADD_INT((HASHNAME), parent_id, x);\
 	ECS_createUpdateListener(x, id, CTYPE);\
 	ECS_createStartListener(x, id, CTYPE);\
@@ -185,10 +185,10 @@ Entity* ECS_instantiate() {
 
 #define MACRO_CASE_GETCOMPONENTOFCTYPE(COMPONENTNAME, HASHNAME, CTYPE) \
 case CTYPE: \
-	COMPONENTNAME* ge ## COMPONENTNAME ## t; \
-	HASH_FIND_INT((HASHNAME), &id, ge ## COMPONENTNAME ## t); \
+	COMPONENTNAME* ge ## COMPONENTNAME ## t = malloc(sizeof(COMPONENTNAME)); \
+	HASH_FIND_INT((HASHNAME), &entityid, ge ## COMPONENTNAME ## t); \
 	return ge ## COMPONENTNAME ## t;
-void* ECS_getComponentById(int id, ComponentType componentType) {
+void* ECS_getComponentById(int entityid, ComponentType componentType) {
 	switch (componentType) {
 		MACRO_CASE_GETCOMPONENTOFCTYPE(Camera, componenthashes.cameras, CTYPE_CAMERA)
 		MACRO_CASE_GETCOMPONENTOFCTYPE(Transform, componenthashes.transforms, CTYPE_TRANSFORM)
@@ -286,6 +286,34 @@ Entity* ECS_getEntity(int id) {
 	return ret;
 }
 
+void ECS_updateWorld() {
+	struct Collider* collider, *tmp;
+	HASH_ITER(hh, componenthashes.colliders, collider, tmp) {
+		Collider_updateWorldShape(collider);
+	}
+}
+
+
+#define MACRO_CASE_STARTLISTENEROFCTYPE(COMPONENTNAME, CTYPE) \
+case CTYPE: \
+	ECS_start ## COMPONENTNAME ## Component(startListener); \
+	break;
+void ECS_runStarts() {
+	struct EventListener* startListener, * tmp;
+	HASH_ITER(hh, componenthashes.startListeners, startListener, tmp) {
+		switch (startListener->ctype) {
+			MACRO_CASE_STARTLISTENEROFCTYPE(CameraController, CTYPE_CAMERACONTROLLER)
+			MACRO_CASE_STARTLISTENEROFCTYPE(PlayerController, CTYPE_PLAYERCONTROLLER)
+			default:
+				//printf("Unused start function for CTYPE ID %d.\n", (int)startListener->ctype);
+				break;
+		}
+		HASH_DEL(componenthashes.startListeners, startListener);
+		free(startListener);
+	}
+}
+
+
 #define MACRO_CASE_UPDATELISTENEROFCTYPE(COMPONENTNAME, CTYPE) \
 case CTYPE: \
 	ECS_update ## COMPONENTNAME ## Component(delta, updateListener); \
@@ -295,7 +323,6 @@ void ECS_runUpdates(float delta) {
 	HASH_ITER(hh, componenthashes.updateListeners, updateListener, tmp) {
 		switch (updateListener->ctype) {
 			MACRO_CASE_UPDATELISTENEROFCTYPE(PlayerController, CTYPE_PLAYERCONTROLLER)
-			MACRO_CASE_UPDATELISTENEROFCTYPE(CameraController, CTYPE_CAMERACONTROLLER)
 			MACRO_CASE_UPDATELISTENEROFCTYPE(EntityRotator, CTYPE_ENTITYROTATOR)
 			default:
 				//printf("Unused update function for CTYPE ID %d. Deleting listener.\n", (int)updateListener->ctype);
@@ -306,12 +333,6 @@ void ECS_runUpdates(float delta) {
 	}
 }
 
-void ECS_updateWorld() {
-	struct Collider* collider, *tmp;
-	HASH_ITER(hh, componenthashes.colliders, collider, tmp) {
-		Collider_updateWorldShape(collider);
-	}
-}
 
 #define MACRO_CASE_LATEUPDATELISTENEROFCTYPE(COMPONENTNAME, CTYPE) \
 case CTYPE: \
@@ -331,20 +352,3 @@ void ECS_runLateUpdates() {
 	}
 }
 
-#define MACRO_CASE_STARTLISTENEROFCTYPE(COMPONENTNAME, CTYPE) \
-case CTYPE: \
-	ECS_start ## COMPONENTNAME ## Component(startListener); \
-	break;
-void ECS_runStarts() {
-	struct EventListener* startListener, * tmp;
-	HASH_ITER(hh, componenthashes.startListeners, startListener, tmp) {
-		switch (startListener->ctype) {
-			MACRO_CASE_STARTLISTENEROFCTYPE(CameraController, CTYPE_CAMERACONTROLLER)
-			default:
-				//printf("Unused start function for CTYPE ID %d.\n", (int)startListener->ctype);
-				break;
-		}
-		HASH_DEL(componenthashes.startListeners, startListener);
-		free(startListener);
-	}
-}

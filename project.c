@@ -1,9 +1,11 @@
 #include "CSCIx229.h"
 #include "vector3.h"
+#include "vector2.h"
 #include "Quaternion.h"
 #include "ecs.h"
 #include "uthash.h"
 #include "input.h"
+#include "window.h"
 #include "includeallcomps.h"
 #include <math.h>
 
@@ -11,8 +13,6 @@
 double DIM = 2;
 int windowLength = 800;
 int windowHeight = 800;
-double asp = 1;
-int lockCursor = 1;
 
 float current_fov = 170;
 float current_dim = 3;
@@ -26,7 +26,7 @@ int shadingMode = GL_FLAT;
 
 int axes = 1;
 
-Quaternion objectRotation;
+
 Entity* testEntity;
 
 void display() {
@@ -43,17 +43,16 @@ void display() {
 		}
 		glLoadIdentity();
 		Entity* e = ECS_getEntity(c->parent_id);
-		e->transform->rotation = objectRotation;
 		//current_dim = c->dim;
 		current_fov = c->fov;
 		glMatrixMode(GL_PROJECTION);
-		Project(current_fov, asp, current_dim);
+		Project(current_fov, Window_getAspectRatio(), current_dim);
 		Vector3* position = &(e->transform->position);
-		Vector3* positionLookTemp = Vector3_createPreset(FORWARD);
+		Vector3* positionLookTemp = Vector3_createPreset(VECTOR3_FORWARD);
 		Vector3* positionLook = Quaternion_createRotated(&(e->transform->rotation), positionLookTemp);
 		free(positionLookTemp);
 		Vector3_add(position, positionLook, positionLook);
-		Vector3* upVector = Vector3_createPreset(UP);
+		Vector3* upVector = Vector3_createPreset(VECTOR3_UP);
 		gluLookAt(position->x, position->y, position->z, positionLook->x, positionLook->y, positionLook->z, upVector->x, upVector->y, upVector->z);
 		free(positionLook); free(upVector);
 		i++;
@@ -120,52 +119,23 @@ void idle() {
 	ECS_updateWorld();
 	//Vector3_print(&(((Collider*)ECS_getComponent(testEntity, CTYPE_COLLIDER))->AABB->extents));
 	ECS_runUpdates(deltaTime);		// Next, run updates on all subscribed components
+	Input_clearMouseDelta();		// Clear mouse delta buffer after updates are run
 	glutPostRedisplay();			// Next, draw scene to the screen
 	ECS_runLateUpdates();			// Next, run late updates on all subscribed components
-	Input_clearBuffer();			// Clear buffered inputs for next frame
-	
-	// Illegal activities below this line
-	Vector3 forward;
-	Vector3_preset(FORWARD, &forward);
-	Vector3 rotator;
-	Vector3_set(cos(cumulativeTime), 0, sin(cumulativeTime), &rotator);
-	Quaternion_fromToRotation(&forward, &rotator, &objectRotation);
-}
-
-
-void passive(int x, int y) {
-	if (lockCursor) {
-		glutSetCursor(GLUT_CURSOR_NONE);	// Can be optimized
-		glutWarpPointer(windowLength / 2, windowHeight / 2);
-		mouseDeltaX += x;
-		mouseDeltaY += y;
-		printf("%d, %d\n", mouseDeltaX, mouseDeltaY);
-	}
-}
-
-
-void reshape(int width, int height) {
-	windowLength = width;
-	windowHeight = height;
-	glViewport(0, 0, RES * width, RES * height);
-	glLoadIdentity();
-	asp = (height > 0) ? (float)width / height : 1;
+	Input_setBufferToCurrent();			// Clear buffered inputs for next frame
 }
 
 
 void initScene() {
 	Entity* player = ECS_instantiate();
-	Vector3_set(2, 0.5, 0, &(player->transform->position));
-	ECS_addComponent(player, CTYPE_ENTITYROTATOR);
-
-
-	PlayerController* player_pController = ECS_addComponent(player, CTYPE_PLAYERCONTROLLER);
+	Vector3_set(-2, 0.5, 0, &(player->transform->position));
 	Camera* player_camera = ECS_addComponent(player, CTYPE_CAMERA);
-	Mesh* player_mesh = ECS_addComponent(player, CTYPE_MESH);
+	ECS_addComponent(player, CTYPE_CAMERACONTROLLER);
+	ECS_addComponent(player, CTYPE_PLAYERCONTROLLER);
+	//Mesh* player_mesh = ECS_addComponent(player, CTYPE_MESH);
 	player_camera->fov = 100;
 	player_camera->dim = 1;
-	player_mesh->mesh_type = MESHTYPE_TEAPOT;
-	player_pController->camera = player_camera;
+	//player_mesh->mesh_type = MESHTYPE_TEAPOT;
 
 	Collider* playerCollider = ECS_addComponent(player, CTYPE_COLLIDER);
 	playerCollider->shapeStruct = Geometry_createAABB(&((Vector3) {2, 2, 2}));
@@ -173,13 +143,13 @@ void initScene() {
 
 	Entity* entity2 = ECS_instantiate();
 	Vector3_set(0, 0, 0, &(entity2->transform->position));
-	Collider* collider2 = ECS_addComponent(entity2, CTYPE_COLLIDER);
-
+	ECS_addComponent(entity2, CTYPE_COLLIDER);
 	ECS_addComponent(entity2, CTYPE_ENTITYROTATOR);
 	Mesh* m2 = ECS_addComponent(entity2, CTYPE_MESH);
 	m2->mesh_type = MESHTYPE_TEAPOT;
 	
 
+	Input_setCursorLocked(1);
 	testEntity = player;
 }
 
@@ -194,10 +164,10 @@ int main(int argc, char* argv[]) {
 	if (glewInit() != GLEW_OK) Fatal("Error initializing GLEW\n");
 #endif
 	glutDisplayFunc(display);
-	glutReshapeFunc(reshape);
+	glutReshapeFunc(Window_reshape);
 	glutKeyboardFunc(Input_setKeyDown);
 	glutKeyboardUpFunc(Input_setKeyUp);
-	glutPassiveMotionFunc(passive);
+	glutPassiveMotionFunc(Input_passive);
 	glutIdleFunc(idle);
 	ErrCheck("init");
 
