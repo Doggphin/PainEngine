@@ -2,8 +2,7 @@
 #define COMP_PLAYERCONTROLLER
 
 #include "comp_camera.h"
-#include "uthash.h"
-#include "componentmacros.h"
+#include "ecs.h"
 
 typedef struct PlayerController {
 	float lookX;

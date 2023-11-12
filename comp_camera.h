@@ -1,7 +1,7 @@
 #ifndef COMP_CAMERA
 #define COMP_CAMERA
 
-#include "macros.h"
+#include "ecs.h"
 
 typedef struct Camera {
 	float dim;

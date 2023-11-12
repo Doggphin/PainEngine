@@ -1,5 +1,7 @@
 #include "ecs.h"
 #include "includeallcomps.h"
+#include "geometry.h"
+#include "physics.h"
 
 // https://gamedev.stackexchange.com/questions/172584/how-could-i-implement-an-ecs-in-c
 
@@ -26,6 +28,73 @@ typedef struct ComponentHashes {
  */
 static struct ComponentHashes componenthashes;
 
+
+void Transform_awake(Transform* x) {
+	Vector3_preset(ZERO, &x->position);
+	Vector3_preset(ONE, &x->scale);
+	Quaternion_setIdentity(&x->rotation);
+	x->relative = 1;
+}
+void Transform_start(Transform* x) {
+
+}
+void Transform_update(float delta, Transform* x) {
+
+}
+void Transform_lateupdate(Transform* x) {
+
+}
+void Transform_copyData(Transform* t, Transform* output) {
+	Vector3_copy(&t->position, &output->position);
+	Vector3_copy(&t->scale, &output->scale);
+	Quaternion_copy(&t->rotation, &output->rotation);
+}
+void Transform_hierarchyScale(Transform* t, Vector3* output) {
+	Vector3_copy(&t->scale, output);
+	if (t->relative == 0 || t->entity->parent_id == 0) { return; }
+	struct Transform* transformBuffer = t->entity->entity->transform;
+	while (1) {
+		Vector3_multiplyEach(output, &transformBuffer->scale, output);
+		if (transformBuffer->relative == 0 || transformBuffer->entity->parent_id == 0)
+		{
+			return;
+		}
+		else {
+			transformBuffer = transformBuffer->entity->transform;
+		}
+	}
+}
+void Transform_hierarchyRotation(Transform* t, Quaternion* output) {
+	Quaternion_copy(&t->rotation, output);
+	if (t->relative == 0 || t->entity->parent_id == 0) { return; }
+	struct Transform* transformBuffer = t->entity->entity->transform;
+	while (1) {
+		Quaternion_multiply(output, &transformBuffer->rotation, output);
+		if (transformBuffer->relative == 0 || transformBuffer->entity->parent_id == 0) {
+			 return;
+			  }
+		else {
+			transformBuffer = transformBuffer->entity->transform;
+		}
+	}
+}
+void Transform_hierarchyPosition(Transform* t, Vector3* output) {
+	Vector3_copy(&t->position, output);
+	if (t->relative == 0 || t->entity->parent_id == 0) { return; }
+	struct Transform* transformBuffer = t->entity->entity->transform;
+	while (1) {
+		Vector3_add(output, &transformBuffer->position, output);
+		if (transformBuffer->relative == 0 || transformBuffer->entity->parent_id == 0) { return; }
+		else {
+			transformBuffer = transformBuffer->entity->transform;
+		}
+	}
+}
+void Transform_hierarchyTransform(Transform* t, Transform* output) {
+	Transform_hierarchyScale(t, &output->scale);
+	Transform_hierarchyPosition(t, &output->position);
+	Transform_hierarchyRotation(t, &output->rotation);
+}
 
 // Private functions to add event listeners to newly instantiated components
 /*
@@ -71,11 +140,13 @@ void ECS_createStartListener(void* component_ptr, int id, ComponentType ctype) {
 		COMPONENTNAME ## _start((COMPONENTNAME*)listener->component_ptr); \
 	} \
 	\
-    COMPONENTNAME* ECS_create ## COMPONENTNAME ## Component(int parent_id, int id) { \
+    COMPONENTNAME* ECS_create ## COMPONENTNAME ## Component(Entity* entity, int id) { \
     struct COMPONENTNAME* x = malloc(sizeof(struct COMPONENTNAME)); \
 	COMPONENTNAME ##_awake(x); \
-    x->parent_id = parent_id; \
+    x->parent_id = entity->id; \
 	x->id = id; \
+	x->entity = entity; \
+	x->enabled = 1; \
     HASH_ADD_INT((HASHNAME), parent_id, x);\
 	ECS_createUpdateListener(x, id, CTYPE);\
 	ECS_createStartListener(x, id, CTYPE);\
@@ -102,7 +173,7 @@ Entity* ECS_createEntity(int parent_id, int id) {
 	e->id = id;
 	e->num_children = 0;
 	component_id_counter++;
-	e->transform = ECS_createTransformComponent(id, component_id_counter);
+	e->transform = ECS_createTransformComponent(e, component_id_counter);
 	HASH_ADD_INT((componenthashes.entities), id, e);
 	return e;
 }
@@ -115,9 +186,9 @@ Entity* ECS_instantiate() {
 #define MACRO_CASE_GETCOMPONENTOFCTYPE(COMPONENTNAME, HASHNAME, CTYPE) \
 case CTYPE: \
 	COMPONENTNAME* ge ## COMPONENTNAME ## t; \
-	HASH_FIND_INT((HASHNAME), &(entity->id), ge ## COMPONENTNAME ## t); \
+	HASH_FIND_INT((HASHNAME), &id, ge ## COMPONENTNAME ## t); \
 	return ge ## COMPONENTNAME ## t;
-void* ECS_getComponent(Entity* entity, ComponentType componentType) {
+void* ECS_getComponentById(int id, ComponentType componentType) {
 	switch (componentType) {
 		MACRO_CASE_GETCOMPONENTOFCTYPE(Camera, componenthashes.cameras, CTYPE_CAMERA)
 		MACRO_CASE_GETCOMPONENTOFCTYPE(Transform, componenthashes.transforms, CTYPE_TRANSFORM)
@@ -131,6 +202,9 @@ void* ECS_getComponent(Entity* entity, ComponentType componentType) {
 			return NULL;
 	}
 	return NULL;
+}
+void* ECS_getComponent(Entity* entity, ComponentType componentType) {
+	return ECS_getComponentById(entity->id, componentType);
 }
 
 
@@ -165,7 +239,7 @@ int ECS_removeComponent(Entity* entity, ComponentType componentType) {
 
 #define MACRO_CASE_ADDCOMPONENTOFCTYPE(COMPONENTNAME, CTYPE) \
 case CTYPE: \
-	ret = ECS_getComponent(entity, CTYPE) == NULL ? ECS_create ## COMPONENTNAME ## Component(entity->id, component_id_counter) : NULL; \
+	ret = ECS_getComponent(entity, CTYPE) == NULL ? ECS_create ## COMPONENTNAME ## Component(entity, component_id_counter) : NULL; \
 	break;
 void* ECS_addComponent(Entity* entity, ComponentType componentType) {
 	void* ret = NULL;
@@ -197,6 +271,8 @@ void* ECS_getAllInstancesOfComponent(ComponentType ctype) {
 			return componenthashes.cameras;
 		case CTYPE_MESH:
 			return componenthashes.meshes;
+		case CTYPE_COLLIDER:
+			return componenthashes.meshes;
 		default:
 			printf("This component hash has no reason to be iterated over and has not been implemented..");
 			return NULL;
@@ -227,6 +303,13 @@ void ECS_runUpdates(float delta) {
 				free(updateListener);
 				break;
 		}
+	}
+}
+
+void ECS_updateWorld() {
+	struct Collider* collider, *tmp;
+	HASH_ITER(hh, componenthashes.colliders, collider, tmp) {
+		Collider_updateWorldShape(collider);
 	}
 }
 

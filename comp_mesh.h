@@ -1,7 +1,7 @@
  #ifndef COMP_MESH
 #define COMP_MESH
 
-#include "macros.h"
+#include "ecs.h"
 
 typedef struct { float x, y; } coord;
 typedef struct { int a, b, c; } tri;

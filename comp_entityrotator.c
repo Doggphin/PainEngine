@@ -3,8 +3,7 @@
 #include "comp_mesh.h"
 
 void EntityRotator_update(float delta, EntityRotator* entityRotator) {
-	Entity* e = ECS_getEntity(entityRotator->parent_id);
-	Mesh* m = ECS_getComponent(e, CTYPE_MESH);
+	Mesh* m = ECS_getComponent(entityRotator->entity, CTYPE_MESH);
 	if (m != NULL) {
 		m->color[0] = 0.5;
 	}

@@ -103,7 +103,8 @@ void Input_setKeyValue(Input_Keycode keycode, int value, int buffered) {
 	}
 }
 
-int Input_isKeyDown(Input_Keycode key, int buffered) {
+
+int Input_isKeyDownSwitch(Input_Keycode key, int buffered) {
 	Input_keysPressed* selected = buffered ? &buffered_inputs : &current_inputs;
 
 	switch (key) {
@@ -166,6 +167,15 @@ int Input_isKeyDown(Input_Keycode key, int buffered) {
 			return 0;
 	}
 }
+
+
+int Input_isKeyDownBuffered(Input_Keycode key) {
+	return Input_isKeyDownSwitch(key, 1);
+}
+int Input_isKeyDown(Input_Keycode key) {
+	return Input_isKeyDownSwitch(key, 0);
+}
+
 
 Input_Keycode Input_charToKeycode(unsigned char ch) {
 	switch (ch) {

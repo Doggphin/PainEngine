@@ -1,7 +1,7 @@
 #ifndef COMP_ENTITYROTATOR
 #define COMP_ENTITYROTATOR
 
-#include "macros.h"
+#include "ecs.h"
 
 typedef struct EntityRotator {
 

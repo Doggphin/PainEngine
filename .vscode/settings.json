@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+        "cscix229.h": "c",
+        "gl.h": "c",
+        "glu.h": "c",
+        "ecs.h": "c",
+        "quaternion.h": "c",
+        "uthash.h": "c",
+        "math.h": "c",
+        "geometry.h": "c",
+        "cmath": "c"
+    }
+}

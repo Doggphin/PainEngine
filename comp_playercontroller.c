@@ -16,7 +16,7 @@ void PlayerController_start(PlayerController* x) {
 }
 
 void PlayerController_update(float delta, PlayerController* x) {
-	if (Input_isKeyDown(KEYCODE_A, 0)) {
+	if (Input_isKeyDown(KEYCODE_A)) {
 		printf("Key A pressed \n");
 	}
 }

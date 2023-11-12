@@ -32,7 +32,6 @@ void Vector3_preset(VectorPreset dir, Vector3* output) {
 		Vector3_set(0, -1, 0, output);
 		return;
 	case ONE:
-		printf("Finally this was called");
 		Vector3_set(1, 1, 1, output);
 	case ZERO:
 		Vector3_set(0, 0, 0, output);
@@ -135,8 +134,17 @@ void Vector3_project(Vector3* onto, Vector3* from, Vector3* output) {
 	Vector3_multiply(onto, (Vector3_dot(from, onto) / pow(Vector3_magnitude(onto), 2)), output);
 }
 
-float Vector3_distance(Vector3* v1, Vector3* v2) {
-	return sqrt(pow(v1->x - v2->x, 2) + pow(v1->y - v2->y, 2) + pow(v1->x - v2->x, 2));
+float Vector3_sqrdistance(Vector3* point1, Vector3* point2) {
+	return pow(point1->x - point2->x, 2) + pow(point1->y - point2->y, 2) + pow(point1->x - point2->x, 2);
+}
+float Vector3_distance(Vector3* point1, Vector3* point2) {
+	return sqrt(Vector3_sqrdistance(point1, point2));
+}
+float Vector3_sqrlength(Vector3* v) {
+	return v->x * v->x + v->y * v->y + v->z * v->z;
+}
+float Vector3_length(Vector3* v) {
+	return sqrt(Vector3_sqrlength(v));
 }
 
 void Vector3_lerp(Vector3* from, Vector3* to, float t, Vector3* output) {
@@ -167,6 +175,15 @@ void Vector3_orthogonal(Vector3* v, Vector3* output) {
 	Vector3 other;
 	Vector3_preset(x < y ? (x < z ? RIGHT : UP) : (y < z ? BACKWARD : UP), &other);
 	Vector3_cross(v, &other, output);
+}
+
+void Vector3_multiplyEach(Vector3* v1, Vector3* v2, Vector3* output) {
+	Vector3_set(v1->x * v2->x, v1->y * v2->y, v1->z * v2->z, output);
+}
+Vector3* Vector3_multiplyEachOut(Vector3* v1, Vector3* v2) {
+	Vector3* ret = malloc(sizeof(Vector3));
+	Vector3_multiplyEach(v1, v2, ret);
+	return ret;
 }
 
 void Vector3_print(Vector3* v) {

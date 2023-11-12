@@ -12,7 +12,7 @@ double DIM = 2;
 int windowLength = 800;
 int windowHeight = 800;
 double asp = 1;
-int lockCursor = 0;
+int lockCursor = 1;
 
 float current_fov = 170;
 float current_dim = 3;
@@ -117,6 +117,8 @@ void idle() {
 
 	// Run game loop step
 	ECS_runStarts();				// First run start functions on any newly instantiated components
+	ECS_updateWorld();
+	//Vector3_print(&(((Collider*)ECS_getComponent(testEntity, CTYPE_COLLIDER))->AABB->extents));
 	ECS_runUpdates(deltaTime);		// Next, run updates on all subscribed components
 	glutPostRedisplay();			// Next, draw scene to the screen
 	ECS_runLateUpdates();			// Next, run late updates on all subscribed components
@@ -137,6 +139,7 @@ void passive(int x, int y) {
 		glutWarpPointer(windowLength / 2, windowHeight / 2);
 		mouseDeltaX += x;
 		mouseDeltaY += y;
+		printf("%d, %d\n", mouseDeltaX, mouseDeltaY);
 	}
 }
 
@@ -153,8 +156,9 @@ void reshape(int width, int height) {
 void initScene() {
 	Entity* player = ECS_instantiate();
 	Vector3_set(2, 0.5, 0, &(player->transform->position));
-	ECS_addComponent(player, CTYPE_COLLIDER);
 	ECS_addComponent(player, CTYPE_ENTITYROTATOR);
+
+
 	PlayerController* player_pController = ECS_addComponent(player, CTYPE_PLAYERCONTROLLER);
 	Camera* player_camera = ECS_addComponent(player, CTYPE_CAMERA);
 	Mesh* player_mesh = ECS_addComponent(player, CTYPE_MESH);
@@ -163,12 +167,18 @@ void initScene() {
 	player_mesh->mesh_type = MESHTYPE_TEAPOT;
 	player_pController->camera = player_camera;
 
+	Collider* playerCollider = ECS_addComponent(player, CTYPE_COLLIDER);
+	playerCollider->shapeStruct = Geometry_createAABB(&((Vector3) {2, 2, 2}));
+	playerCollider->shape = SHAPE_AABB;
+
 	Entity* entity2 = ECS_instantiate();
 	Vector3_set(0, 0, 0, &(entity2->transform->position));
-	ECS_addComponent(entity2, CTYPE_COLLIDER);
+	Collider* collider2 = ECS_addComponent(entity2, CTYPE_COLLIDER);
+
 	ECS_addComponent(entity2, CTYPE_ENTITYROTATOR);
 	Mesh* m2 = ECS_addComponent(entity2, CTYPE_MESH);
 	m2->mesh_type = MESHTYPE_TEAPOT;
+	
 
 	testEntity = player;
 }
