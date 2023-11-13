@@ -5,6 +5,7 @@
 
 // https://gdbooks.gitbooks.io/3dcollisions/content/
 
+
 int Physics_pointIsInAABB(Vector3* point, AABB* aabb) {
 	return point->x > aabb->min.x &&
 		point->y > aabb->min.y &&
@@ -62,7 +63,7 @@ int Physics_raycast(Vector3* from, Vector3* to, int layerMask, RaycastResults* o
 	return 0;
 }
 
-int Physics_penetrationCircleInCircle(Sphere* sphereDynamic, Sphere* sphereStatic, CollisionInfo* out) {
+int Physics_penetrationSphereInSphere(Sphere* sphereDynamic, Sphere* sphereStatic, CollisionInfo* out) {
 	assert(out != NULL);
 
 	struct Vector3 dynamicToStatic;
@@ -70,8 +71,8 @@ int Physics_penetrationCircleInCircle(Sphere* sphereDynamic, Sphere* sphereStati
 	float cumradius = sphereDynamic->radius + sphereStatic->radius;
 	float distance = Vector3_length(&dynamicToStatic);
 
+	//printf("Distance is %.6f, cumulative radius is %.6f\n", distance, cumradius);
 	if (distance >= cumradius) { return 0; }
-
 	// First, set distance of out distance
 	out->distance = distance;
 
@@ -87,8 +88,9 @@ int Physics_penetrationCircleInCircle(Sphere* sphereDynamic, Sphere* sphereStati
 
 	// Set safeposition to dynamic sphere's center minus depth * the negative fromTo vector
 	Vector3_copy(&fromTo, &out->safePosition);
-	Vector3_multiply(&out->safePosition, -out->depth, &out->safePosition);
+	Vector3_multiply(&out->safePosition, out->depth - sphereDynamic->skin, &out->safePosition);
 	Vector3_add(&out->safePosition, &sphereDynamic->center, &out->safePosition);
+	//Vector3_print(&out->safePosition);
 
 	// Set point to bounded point trying to go from safeposition to static sphere's center
 	Vector3_multiply(&fromTo, sphereDynamic->radius, &out->point);
@@ -97,9 +99,9 @@ int Physics_penetrationCircleInCircle(Sphere* sphereDynamic, Sphere* sphereStati
 	return 1;
 }
 
-void Physics_findOverlappingAABBs(Collider* colliderhash) {
+void Physics_findAllOverlappingAABBs(Collider* colliderhash) {
 	struct Collider* base;
-
+	// Check for all overlaps between all AABBs.
     for (base = colliderhash; base != NULL; base = base->hh.next) {
 		struct Collider* compare = base;
 		compare = compare->hh.next;
@@ -111,5 +113,40 @@ void Physics_findOverlappingAABBs(Collider* colliderhash) {
 			compare = compare->hh.next;
 		}
     }
+}
+
+Collider* Physics_findOverlappingAABBs(Collider* collider, Collider* colliderhash) {
+	struct Collider* check = malloc(sizeof(Collider));
+	struct Collider* rethash = NULL;
+
+	for(check = colliderhash; check != NULL; check = check->hh.next) {
+		
+		if(check->id == collider->id) {continue;}
+		if(Physics_AABBIsInAABB(collider->AABB, check->AABB)) {
+			HASH_ADD(collisionhh, rethash, id2, sizeof(int), check);	// duh, this removes it from the hash
+		}
+		
+	}
+
+	return rethash;
+}
+
+int Physics_getCollisionInfo(Collider* a, Collider* b, CollisionInfo* output) {
+	switch(a->shape) {
+		case SHAPE_SPHERE:
+			switch(b->shape) {
+				case SHAPE_SPHERE:
+					if(Physics_penetrationSphereInSphere((Sphere*)a->shapeStruct, (Sphere*)b->shapeStruct, output)) {
+						return 1;
+					}
+					return 0;
+				default:
+					printf("Unimplemented collision detection for shape types %d and %d!\n", a->shape, b->shape);
+					return 0;
+			}
+		default:
+			printf("Unimplemented collision detection for shape types %d and %d!\n", a->shape, b->shape);
+			return 0;
+	}
 }
 

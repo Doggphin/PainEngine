@@ -22,6 +22,7 @@ typedef struct ComponentHashes {
 	struct EventListener* startListeners;
 	struct EventListener* lateupdateListeners;
 	struct CameraController* cameraControllers;
+	struct Rigidbody* rigidbodies;
 } ComponentHashes;
 /*
  * Singleton that contains references all instantiated components.
@@ -146,8 +147,7 @@ void ECS_createStartListener(void* component_ptr, int id, ComponentType ctype) {
 	x->id = id; \
 	x->entity = entity; \
 	x->enabled = entity->enabled; \
-	COMPONENTNAME ##_awake(x); \
-    HASH_ADD_INT((HASHNAME), parent_id, x);\
+    HASH_ADD(hh, (HASHNAME), parent_id, sizeof(int), x);\
 	ECS_createUpdateListener(x, id, CTYPE);\
 	ECS_createStartListener(x, id, CTYPE);\
 	ECS_createLateUpdateListener(x, id, CTYPE); \
@@ -162,7 +162,7 @@ MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(Camera, componenthashes.cameras, CTYPE_CAMERA
 MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(Mesh, componenthashes.meshes, CTYPE_MESH)
 MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(Collider, componenthashes.colliders, CTYPE_COLLIDER)
 MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(CameraController, componenthashes.cameraControllers, CTYPE_CAMERACONTROLLER)
-
+MACRO_FUNCDEF_ECS_CREATEXCOMPONENT(Rigidbody, componenthashes.rigidbodies, CTYPE_RIGIDBODY)
 
 /*
  * Creates an entity of a given parent ID and personal ID.
@@ -197,6 +197,7 @@ void* ECS_getComponentById(int entityid, ComponentType componentType) {
 		MACRO_CASE_GETCOMPONENTOFCTYPE(PlayerController, componenthashes.playerControllers, CTYPE_PLAYERCONTROLLER)
 		MACRO_CASE_GETCOMPONENTOFCTYPE(CameraController, componenthashes.cameraControllers, CTYPE_CAMERACONTROLLER)
 		MACRO_CASE_GETCOMPONENTOFCTYPE(Collider, componenthashes.colliders, CTYPE_COLLIDER)
+		MACRO_CASE_GETCOMPONENTOFCTYPE(Rigidbody, componenthashes.rigidbodies, CTYPE_RIGIDBODY)
 		case CTYPE_ENTITY:
 			printf("Cannot use GetComponent to retrieve entities.");
 			return NULL;
@@ -230,6 +231,7 @@ int ECS_removeComponent(Entity* entity, ComponentType componentType) {
 		MACRO_CASE_REMOVECOMPONENTOFCTYPE(PlayerController, componenthashes.playerControllers, CTYPE_PLAYERCONTROLLER)
 		MACRO_CASE_REMOVECOMPONENTOFCTYPE(CameraController, componenthashes.cameraControllers, CTYPE_CAMERACONTROLLER)
 		MACRO_CASE_REMOVECOMPONENTOFCTYPE(Collider, componenthashes.colliders, CTYPE_COLLIDER)
+		MACRO_CASE_REMOVECOMPONENTOFCTYPE(Rigidbody, componenthashes.rigidbodies, CTYPE_RIGIDBODY)
 	case CTYPE_ENTITY:
 		printf("Entity components must be removed through the destroy function.");
 	}
@@ -239,8 +241,14 @@ int ECS_removeComponent(Entity* entity, ComponentType componentType) {
 
 #define MACRO_CASE_ADDCOMPONENTOFCTYPE(COMPONENTNAME, CTYPE) \
 case CTYPE: \
-	ret = ECS_getComponent(entity, CTYPE) == NULL ? ECS_create ## COMPONENTNAME ## Component(entity, component_id_counter) : NULL; \
-	break;
+	if(ECS_getComponent(entity, CTYPE) == NULL) { \
+		ret = ECS_create ## COMPONENTNAME ## Component(entity, component_id_counter); \
+		COMPONENTNAME ## _awake(ret); \
+		break; \
+	} else { \
+		return NULL; \
+	}
+	
 void* ECS_addComponent(Entity* entity, ComponentType componentType) {
 	void* ret = NULL;
 	component_id_counter++;
@@ -251,6 +259,8 @@ void* ECS_addComponent(Entity* entity, ComponentType componentType) {
 		MACRO_CASE_ADDCOMPONENTOFCTYPE(EntityRotator, CTYPE_ENTITYROTATOR)
 		MACRO_CASE_ADDCOMPONENTOFCTYPE(PlayerController, CTYPE_PLAYERCONTROLLER)
 		MACRO_CASE_ADDCOMPONENTOFCTYPE(CameraController, CTYPE_CAMERACONTROLLER)
+		MACRO_CASE_ADDCOMPONENTOFCTYPE(Rigidbody, CTYPE_RIGIDBODY)
+
 		case CTYPE_ENTITY:
 			printf("Entity components must be added through the instantiate function.\n");
 			return NULL;
@@ -291,7 +301,6 @@ void ECS_updateWorld() {
 	HASH_ITER(hh, componenthashes.colliders, collider, tmp) {
 		Collider_updateWorldShape(collider);
 	}
-	Physics_findOverlappingAABBs(componenthashes.colliders);
 }
 
 
@@ -305,6 +314,7 @@ void ECS_runStarts() {
 		switch (startListener->ctype) {
 			MACRO_CASE_STARTLISTENEROFCTYPE(CameraController, CTYPE_CAMERACONTROLLER)
 			MACRO_CASE_STARTLISTENEROFCTYPE(PlayerController, CTYPE_PLAYERCONTROLLER)
+			MACRO_CASE_STARTLISTENEROFCTYPE(Rigidbody, CTYPE_RIGIDBODY)
 			default:
 				//printf("Unused start function for CTYPE ID %d.\n", (int)startListener->ctype);
 				break;
@@ -325,6 +335,7 @@ void ECS_runUpdates(float delta) {
 		switch (updateListener->ctype) {
 			MACRO_CASE_UPDATELISTENEROFCTYPE(PlayerController, CTYPE_PLAYERCONTROLLER)
 			MACRO_CASE_UPDATELISTENEROFCTYPE(EntityRotator, CTYPE_ENTITYROTATOR)
+			MACRO_CASE_UPDATELISTENEROFCTYPE(Rigidbody, CTYPE_RIGIDBODY)
 			default:
 				//printf("Unused update function for CTYPE ID %d. Deleting listener.\n", (int)updateListener->ctype);
 				HASH_DEL(componenthashes.updateListeners, updateListener);

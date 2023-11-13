@@ -6,10 +6,7 @@
 void Mesh_awake(Mesh* m) {
 	m->texture_id = 0;
 	m->mesh_type = MESHTYPE_NONE;
-    m->color = malloc(sizeof(float) * 3);   
-    m->color[0] = 1;
-    m->color[1] = 1;
-    m->color[2] = 1;
+    Vector3_preset(VECTOR3_ONE, &m->color);
 }
 
 void Mesh_start(Mesh* m) {
@@ -211,7 +208,7 @@ void Mesh_drawArwing() {
 }
 
 void Mesh_draw(Mesh* m) {
-    glColor3f(m->color[0], m->color[1], m->color[2]);
+    glColor3f(m->color.x, m->color.y, m->color.z);
 	MeshType meshType = m->mesh_type;
 	switch (meshType) {
 		case MESHTYPE_TEAPOT:
@@ -226,6 +223,5 @@ void Mesh_draw(Mesh* m) {
 }
 
 void Mesh_free(Mesh* m) {
-    free(m->color);
     free(m);
 }

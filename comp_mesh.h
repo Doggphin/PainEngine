@@ -17,7 +17,7 @@ typedef enum {
 typedef struct Mesh {
 	unsigned int texture_id;
 	MeshType mesh_type;
-	float* color;
+	struct Vector3 color;
 
 	MACRO_COMPONENTFIELDS
 } Mesh;

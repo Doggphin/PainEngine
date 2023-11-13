@@ -21,7 +21,7 @@ void Geometry_generateAABBShape(Vector3* center, void* shape, PrimitiveShape sha
 		break;
 	case SHAPE_SPHERE:
 		Sphere* sphere = (Sphere*)shape;
-		Vector3 sphereExtents = { sphere->radius, sphere->radius, sphere->radius };
+		Vector3 sphereExtents = { sphere->radius * 2, sphere->radius * 2, sphere->radius * 2};
 		Geometry_calculateAABB(center, &sphereExtents, out);
 		break;
 	}

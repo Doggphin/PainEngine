@@ -26,8 +26,10 @@ int Physics_AABBIsInAABB(AABB* a, AABB* b);
 void Physics_closestPointAABB(Vector3* point, AABB* aabb, Vector3* output);
 void Physics_closestPointSphere(Vector3* point, Sphere* sphere, Vector3* output);
 int Physics_raycast(Vector3* from, Vector3* to, int layerMask, RaycastResults* out);
-int Physics_penetrationCircleInCircle(Sphere* sphere1, Sphere* sphere2, CollisionInfo* out);
-void Physics_findOverlappingAABBs(Collider* colliderhash);
+int Physics_penetrationSphereInSphere(Sphere* sphere1, Sphere* sphere2, CollisionInfo* out);
+void Physics_findAllOverlappingAABBs(Collider* colliderhash);
+Collider* Physics_findOverlappingAABBs(Collider* collider, Collider* colliderhash);
+int Physics_getCollisionInfo(Collider* a, Collider* b, CollisionInfo* output);
 //int Physics_penetrationCircleInAABB(Sphere* sphere, AABB* aabb, CollisionInfo* out);
 
 #endif

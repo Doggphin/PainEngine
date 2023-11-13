@@ -14,14 +14,13 @@ double DIM = 2;
 int windowLength = 800;
 int windowHeight = 800;
 
-float current_fov = 170;
 float current_dim = 3;
 
 float deltaTime = 0;
 float cumulativeTime = 0;
 int mouseDeltaX = 0;
 int mouseDeltaY = 0;
-
+float current_fov = 90;
 int shadingMode = GL_FLAT;
 
 int axes = 1;
@@ -80,7 +79,9 @@ void display() {
 
 	Collider* colliders = (Collider*)ECS_getAllInstancesOfComponent(CTYPE_COLLIDER);
 	struct Collider* col = malloc(sizeof(Collider) * HASH_COUNT(colliders));
+	int collidersFound = 0;
 	for (col = colliders; col != NULL; col = col->hh.next) {
+		collidersFound++;
 		glPushMatrix();
 
 		AABB* aabb = col->AABB;
@@ -113,9 +114,15 @@ void display() {
 		glVertex3d(aabb->max.x, aabb->max.y - aabb->extents.y, aabb->max.z);
 		glVertex3d(aabb->max.x - aabb->extents.x, aabb->max.y - aabb->extents.y, aabb->max.z);
 		glEnd();
+		if(collidersFound == 3) {
+			//Vector3_print(&aabb->min);
+			//Vector3_print(&aabb->extents);
+			//Vector3_print(&aabb->max);
+		}
 
 		glPopMatrix();
 	}
+	//printf("%d Colliders found\n", collidersFound);
 	//free(col);
 
 	glColor3f(1, 1, 1);
@@ -176,21 +183,30 @@ void initScene() {
 	ECS_addComponent(player, CTYPE_PLAYERCONTROLLER);
 	player_camera->fov = 100;
 	player_camera->dim = 1;
-
 	Collider* e1c = ECS_addComponent(player, CTYPE_COLLIDER);
-	e1c->shapeStruct = Geometry_createSphere(.4);
+	e1c->shapeStruct = Geometry_createSphere(.2);
+	((Sphere*)e1c->shapeStruct)->skin = 0.001;
 	e1c->shape = SHAPE_SPHERE;
+
 
 	Entity* entity2 = ECS_instantiate();
 	Vector3_set(0, 0, 0, &(entity2->transform->position));
 	ECS_addComponent(entity2, CTYPE_ENTITYROTATOR);
 	Mesh* m2 = ECS_addComponent(entity2, CTYPE_MESH);
 	m2->mesh_type = MESHTYPE_TEAPOT;
-
 	Collider* e2c = ECS_addComponent(entity2, CTYPE_COLLIDER);
-	e2c->shapeStruct = Geometry_createSphere(.4);
+	e2c->shapeStruct = Geometry_createSphere(.2);
 	e2c->shape = SHAPE_SPHERE;
-	
+
+	Entity* rigidbody = ECS_instantiate();
+	Vector3_set(-1, 3, 2, &(rigidbody->transform->position));
+	Mesh* rMesh = ECS_addComponent(rigidbody, CTYPE_MESH);
+	rMesh->mesh_type = MESHTYPE_TEAPOT;
+	Collider* rigidCol = ECS_addComponent(rigidbody, CTYPE_COLLIDER);
+	rigidCol->shapeStruct = Geometry_createSphere(.2);
+	rigidCol->shape = SHAPE_SPHERE;
+	((Sphere*)rigidCol->shapeStruct)->skin = 0;
+	Rigidbody* r = ECS_addComponent(rigidbody, CTYPE_RIGIDBODY);	
 
 	Input_setCursorLocked(1);
 	testEntity = player;

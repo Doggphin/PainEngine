@@ -25,9 +25,9 @@ CFLAGS =-Wall
 # Which libraries to use
 LDFLAGS = 
 # Which object files are part of the final program
-OBJFILES= vector3.o Quaternion.o physics.o geometry.o comp_collider.o vector2.o window.o macros.h includeallcomps.h comp_cameracontroller.o comp_mesh.o comp_camera.o comp_entityrotator.o comp_playercontroller.o input.o ecs.o uthash.h project.o
+OBJFILES= vector3.o Quaternion.o physics.o geometry.o comp_collider.o vector2.o comp_rigidbody.o window.o macros.h includeallcomps.h comp_cameracontroller.o comp_mesh.o comp_camera.o comp_entityrotator.o comp_playercontroller.o input.o ecs.o uthash.h project.o
 # What to name the final prog
-EXE = project
+EXE = painengine
 
 all: $(EXE)
 

@@ -49,6 +49,8 @@
         "algorithm": "c",
         "comp_collider.h": "c",
         "macros.h": "c",
-        "locale": "c"
+        "locale": "c",
+        "physics.h": "c",
+        "includeallcomps.h": "c"
     }
 }

@@ -15,17 +15,20 @@ typedef struct AABB {
 	struct Vector3 extents;
 	struct Vector3 max;
 	struct Vector3 min;
+	float skin;
 } AABB;
 
 typedef struct Sphere {
 	struct Vector3 center;
 	float radius;
+	float skin;
 } Sphere;
 
 typedef struct Cuboid {
 	struct Vector3 center;
 	struct Vector3 scale;
 	struct Quaternion rotation;
+	float skin;
 } Cuboid;
 
 void Geometry_generateAABB(Vector3* center, Vector3* extents, AABB* out);

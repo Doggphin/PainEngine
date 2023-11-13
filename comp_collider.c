@@ -39,12 +39,28 @@ void Collider_updateWorldShape(Collider* c) {
 	QMALLOC(newT, Transform)
 	Transform_hierarchyTransform(c->entity->transform, newT);
 	Collider_updateAABB(c, newT);
+	switch(c->shape) {
+		case SHAPE_AABB:
+			struct AABB* aabb = (AABB*)c->shapeStruct;
+			Vector3_copy(&newT->position, &aabb->center);
+		case SHAPE_SPHERE:
+			struct Sphere* sphere = (Sphere*)c->shapeStruct;
+			Vector3_copy(&newT->position, &sphere->center);
+		case SHAPE_CUBE:
+			struct Cuboid* cuboid = (Cuboid*)c->shapeStruct;
+			Vector3_copy(&newT->position, &cuboid->center);
+		case SHAPE_NONE:
+			break;
+	}
+	free(newT);
 }
 
 void Collider_awake(Collider* x) {
 	x->shape = SHAPE_NONE;
 	x->AABB = malloc(sizeof(AABB));
 	Collider_updateWorldShape(x);
+	x->id2 = rand();
+	printf("%d\n", x->id2);
 }
 
 void Collider_start(Collider* x) {

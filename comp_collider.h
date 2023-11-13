@@ -24,6 +24,8 @@ typedef struct Collider {
 	PrimitiveShape _AABBshapecache;
 	void* _transformedShape;
 	MACRO_COMPONENTFIELDS
+	int id2;
+	UT_hash_handle collisionhh;
 } Collider;
 
 

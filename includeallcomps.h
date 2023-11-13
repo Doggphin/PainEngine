@@ -7,5 +7,6 @@
 #include "comp_camera.h"
 #include "comp_collider.h"
 #include "comp_cameracontroller.h"
+#include "comp_rigidbody.h"
 
 #endif

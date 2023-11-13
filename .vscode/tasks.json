@@ -6,7 +6,7 @@
         {
             "label": "runproject",
             "type": "shell",
-            "command": "cd C:/Users/Doggp/Desktop/university/PainEngine && cls && MinGW32-make && project",
+            "command": "cd C:/Users/Doggp/Desktop/university/PainEngine && cls && MinGW32-make && painengine",
             "problemMatcher": [],
             "group": {
                 "kind": "build",

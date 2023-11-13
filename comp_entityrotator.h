@@ -5,6 +5,8 @@
 
 typedef struct EntityRotator {
 
+	float totalTime;
+	
 	MACRO_COMPONENTFIELDS
 } EntityRotator;
 

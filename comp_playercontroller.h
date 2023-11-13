@@ -4,11 +4,14 @@
 #include "comp_cameracontroller.h"
 #include "ecs.h"
 #include "vector2.h"
+#include "comp_collider.h"
 
 typedef struct PlayerController {
 	CameraController* cc;
+	Collider* collider;
 	Vector3 velocity;
-
+	int moveonce;
+	
 	MACRO_COMPONENTFIELDS
 } PlayerController;
 
