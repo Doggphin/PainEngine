@@ -47,7 +47,7 @@ void display() {
 		//current_dim = c->dim;
 		current_fov = c->fov;
 		glMatrixMode(GL_PROJECTION);
-		Project(current_fov, Window_getAspectRatio(), current_dim);
+		Project(current_fov, Window_getAspectRatio(), current_dim, 0.01, 25);
 		Vector3* position = &(e->transform->position);
 		Vector3* positionLookTemp = Vector3_createPreset(VECTOR3_FORWARD);
 		Vector3* positionLook = Quaternion_createRotated(&(e->transform->rotation), positionLookTemp);
@@ -85,10 +85,10 @@ void display() {
 
 		AABB* aabb = col->AABB;
 
-		printf("The aabb minimum is: ");
-		Vector3_print(&aabb->min);
-		printf("The aabb extents are: ");
-		Vector3_print(&aabb->extents);
+		//printf("The aabb minimum is: ");
+		//Vector3_print(&aabb->min);
+		//printf("The aabb extents are: ");
+		//Vector3_print(&aabb->extents);
 
 		glColor3f(1, 0, 0);
 		glBegin(GL_LINE_STRIP);
@@ -112,8 +112,6 @@ void display() {
 		glVertex3d(aabb->max.x, aabb->max.y - aabb->extents.y, aabb->max.z - aabb->extents.z);
 		glVertex3d(aabb->max.x, aabb->max.y - aabb->extents.y, aabb->max.z);
 		glVertex3d(aabb->max.x - aabb->extents.x, aabb->max.y - aabb->extents.y, aabb->max.z);
-		
-
 		glEnd();
 
 		glPopMatrix();
@@ -162,6 +160,7 @@ void idle() {
 	ECS_updateWorld();
 	//Vector3_print(&(((Collider*)ECS_getComponent(testEntity, CTYPE_COLLIDER))->AABB->extents));
 	ECS_runUpdates(deltaTime);		// Next, run updates on all subscribed components
+	ECS_updateWorld();
 	Input_clearMouseDelta();		// Clear mouse delta buffer after updates are run
 	glutPostRedisplay();			// Next, draw scene to the screen
 	ECS_runLateUpdates();			// Next, run late updates on all subscribed components
@@ -177,6 +176,10 @@ void initScene() {
 	ECS_addComponent(player, CTYPE_PLAYERCONTROLLER);
 	player_camera->fov = 100;
 	player_camera->dim = 1;
+
+	Collider* e1c = ECS_addComponent(player, CTYPE_COLLIDER);
+	e1c->shapeStruct = Geometry_createSphere(.4);
+	e1c->shape = SHAPE_SPHERE;
 
 	Entity* entity2 = ECS_instantiate();
 	Vector3_set(0, 0, 0, &(entity2->transform->position));

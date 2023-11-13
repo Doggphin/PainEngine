@@ -22,10 +22,12 @@ typedef struct RaycastResults {
 
 int Physics_pointIsInAABB(Vector3* point, AABB* aabb);
 int Physics_pointIsInSphere(Vector3* point, Sphere* sphere);
+int Physics_AABBIsInAABB(AABB* a, AABB* b);
 void Physics_closestPointAABB(Vector3* point, AABB* aabb, Vector3* output);
 void Physics_closestPointSphere(Vector3* point, Sphere* sphere, Vector3* output);
 int Physics_raycast(Vector3* from, Vector3* to, int layerMask, RaycastResults* out);
 int Physics_penetrationCircleInCircle(Sphere* sphere1, Sphere* sphere2, CollisionInfo* out);
+void Physics_findOverlappingAABBs(Collider* colliderhash);
 //int Physics_penetrationCircleInAABB(Sphere* sphere, AABB* aabb, CollisionInfo* out);
 
 #endif

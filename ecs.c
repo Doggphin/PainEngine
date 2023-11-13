@@ -291,6 +291,7 @@ void ECS_updateWorld() {
 	HASH_ITER(hh, componenthashes.colliders, collider, tmp) {
 		Collider_updateWorldShape(collider);
 	}
+	Physics_findOverlappingAABBs(componenthashes.colliders);
 }
 
 

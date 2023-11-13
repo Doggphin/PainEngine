@@ -1,5 +1,7 @@
 #include "physics.h"
 #include <assert.h>
+#include "uthash.h"
+#include "ecs.h"
 
 // https://gdbooks.gitbooks.io/3dcollisions/content/
 
@@ -10,6 +12,12 @@ int Physics_pointIsInAABB(Vector3* point, AABB* aabb) {
 		point->x < aabb->max.x &&
 		point->y < aabb->max.y &&
 		point->z > aabb->max.z;
+}
+
+int Physics_AABBIsInAABB(AABB* a, AABB* b) {
+	return (a->min.x <= b->max.x && a->max.x >= b->min.x) &&
+	(a->min.y <= b->max.y && a->max.y >= b->min.y) &&
+	(a->min.z <= b->max.z && a->max.z >= b->min.z);
 }
 
 int Physics_pointIsInSphere(Vector3* point, Sphere* sphere) {
@@ -89,5 +97,19 @@ int Physics_penetrationCircleInCircle(Sphere* sphereDynamic, Sphere* sphereStati
 	return 1;
 }
 
-//int Physics_penetrationAABBInCircle(AABB*)
+void Physics_findOverlappingAABBs(Collider* colliderhash) {
+	struct Collider* base;
+
+    for (base = colliderhash; base != NULL; base = base->hh.next) {
+		struct Collider* compare = base;
+		compare = compare->hh.next;
+		while(compare != NULL) {
+			printf("Comparing the colliders of entities %d and %d. \n", base->entity->id, compare->entity->id);
+			if(Physics_AABBIsInAABB(base->AABB, compare->AABB)) {
+				printf("Overlap!\n");
+			}
+			compare = compare->hh.next;
+		}
+    }
+}
 

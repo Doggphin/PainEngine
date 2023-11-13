@@ -5,7 +5,7 @@
 //
 //  Set projection
 //
-void Project(double fov,double asp,double dim)
+void Project(double fov,double asp,double dim, double near, double far)
 {
    //  Tell OpenGL we want to manipulate the projection matrix
    glMatrixMode(GL_PROJECTION);
@@ -13,7 +13,7 @@ void Project(double fov,double asp,double dim)
    glLoadIdentity();
    //  Perspective transformation
    if (fov)
-      gluPerspective(fov,asp,dim/16,16*dim);
+      gluPerspective(fov,asp,.01,16*dim);
    //  Orthogonal transformation
    else
       glOrtho(-asp*dim,asp*dim,-dim,+dim,-dim,+dim);
