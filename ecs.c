@@ -145,7 +145,7 @@ void ECS_createStartListener(void* component_ptr, int id, ComponentType ctype) {
     x->parent_id = entity->id; \
 	x->id = id; \
 	x->entity = entity; \
-	x->enabled = 1; \
+	x->enabled = entity->enabled; \
 	COMPONENTNAME ##_awake(x); \
     HASH_ADD_INT((HASHNAME), parent_id, x);\
 	ECS_createUpdateListener(x, id, CTYPE);\
@@ -272,7 +272,7 @@ void* ECS_getAllInstancesOfComponent(ComponentType ctype) {
 		case CTYPE_MESH:
 			return componenthashes.meshes;
 		case CTYPE_COLLIDER:
-			return componenthashes.meshes;
+			return componenthashes.colliders;
 		default:
 			printf("This component hash has no reason to be iterated over and has not been implemented..");
 			return NULL;

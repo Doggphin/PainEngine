@@ -11,25 +11,25 @@ typedef enum PrimitiveShape {
 } PrimitiveShape;
 
 typedef struct AABB {
-	Vector3 center;
-	Vector3 extents;
-	Vector3 max;
-	Vector3 min;
+	struct Vector3 center;
+	struct Vector3 extents;
+	struct Vector3 max;
+	struct Vector3 min;
 } AABB;
 
 typedef struct Sphere {
-	Vector3 center;
+	struct Vector3 center;
 	float radius;
 } Sphere;
 
 typedef struct Cuboid {
-	Vector3 center;
-	Vector3 scale;
-	Quaternion rotation;
+	struct Vector3 center;
+	struct Vector3 scale;
+	struct Quaternion rotation;
 } Cuboid;
 
 void Geometry_generateAABB(Vector3* center, Vector3* extents, AABB* out);
-void Geometry_generateAABBShape(void* shape, PrimitiveShape shapeType, AABB* out);
+void Geometry_generateAABBShape(Vector3* center, void* shape, PrimitiveShape shapeType, AABB* out);
 Sphere* Geometry_createSphere(float radius);
 Cuboid* Geometry_createCuboid(Vector3* scale, Quaternion* rotation);
 AABB* Geometry_createAABB(Vector3* extents);

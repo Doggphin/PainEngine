@@ -25,6 +25,7 @@ int mouseDeltaY = 0;
 int shadingMode = GL_FLAT;
 
 int axes = 1;
+int drawColliderGizmos = 1;
 
 
 Entity* testEntity;
@@ -76,6 +77,48 @@ void display() {
 		glPopMatrix();
 	}
 	free(m);
+
+	Collider* colliders = (Collider*)ECS_getAllInstancesOfComponent(CTYPE_COLLIDER);
+	struct Collider* col = malloc(sizeof(Collider) * HASH_COUNT(colliders));
+	for (col = colliders; col != NULL; col = col->hh.next) {
+		glPushMatrix();
+
+		AABB* aabb = col->AABB;
+
+		printf("The aabb minimum is: ");
+		Vector3_print(&aabb->min);
+		printf("The aabb extents are: ");
+		Vector3_print(&aabb->extents);
+
+		glColor3f(1, 0, 0);
+		glBegin(GL_LINE_STRIP);
+		glVertex3d(aabb->min.x, aabb->min.y, aabb->min.z);
+		glVertex3d(aabb->min.x + aabb->extents.x, aabb->min.y, aabb->min.z);
+		glVertex3d(aabb->min.x + aabb->extents.x, aabb->min.y + aabb->extents.y, aabb->min.z);
+		glVertex3d(aabb->min.x, aabb->min.y + aabb->extents.y, aabb->min.z);
+		glVertex3d(aabb->min.x, aabb->min.y, aabb->min.z);
+		glVertex3d(aabb->min.x, aabb->min.y, aabb->min.z + aabb->extents.z);
+		glVertex3d(aabb->min.x, aabb->min.y + aabb->extents.y, aabb->min.z + aabb->extents.z);
+		glVertex3d(aabb->min.x, aabb->min.y + aabb->extents.y, aabb->min.z);
+		glEnd();
+		glBegin(GL_LINES);
+		glVertex3d(aabb->max.x, aabb->max.y, aabb->max.z);
+		glVertex3d(aabb->max.x - aabb->extents.x, aabb->max.y, aabb->max.z);
+		glVertex3d(aabb->max.x, aabb->max.y, aabb->max.z);
+		glVertex3d(aabb->max.x, aabb->max.y - aabb->extents.y, aabb->max.z);
+		glVertex3d(aabb->max.x, aabb->max.y, aabb->max.z);
+		glVertex3d(aabb->max.x, aabb->max.y, aabb->max.z - aabb->extents.z);
+		glVertex3d(aabb->max.x, aabb->max.y - aabb->extents.y, aabb->max.z);
+		glVertex3d(aabb->max.x, aabb->max.y - aabb->extents.y, aabb->max.z - aabb->extents.z);
+		glVertex3d(aabb->max.x, aabb->max.y - aabb->extents.y, aabb->max.z);
+		glVertex3d(aabb->max.x - aabb->extents.x, aabb->max.y - aabb->extents.y, aabb->max.z);
+		
+
+		glEnd();
+
+		glPopMatrix();
+	}
+	//free(col);
 
 	glColor3f(1, 1, 1);
 	if (axes)
@@ -132,25 +175,24 @@ void initScene() {
 	Camera* player_camera = ECS_addComponent(player, CTYPE_CAMERA);
 	ECS_addComponent(player, CTYPE_CAMERACONTROLLER);
 	ECS_addComponent(player, CTYPE_PLAYERCONTROLLER);
-	//Mesh* player_mesh = ECS_addComponent(player, CTYPE_MESH);
 	player_camera->fov = 100;
 	player_camera->dim = 1;
-	//player_mesh->mesh_type = MESHTYPE_TEAPOT;
-
-	Collider* playerCollider = ECS_addComponent(player, CTYPE_COLLIDER);
-	playerCollider->shapeStruct = Geometry_createAABB(&((Vector3) {2, 2, 2}));
-	playerCollider->shape = SHAPE_AABB;
 
 	Entity* entity2 = ECS_instantiate();
 	Vector3_set(0, 0, 0, &(entity2->transform->position));
-	ECS_addComponent(entity2, CTYPE_COLLIDER);
 	ECS_addComponent(entity2, CTYPE_ENTITYROTATOR);
 	Mesh* m2 = ECS_addComponent(entity2, CTYPE_MESH);
 	m2->mesh_type = MESHTYPE_TEAPOT;
+
+	Collider* e2c = ECS_addComponent(entity2, CTYPE_COLLIDER);
+	e2c->shapeStruct = Geometry_createSphere(.4);
+	e2c->shape = SHAPE_SPHERE;
 	
 
 	Input_setCursorLocked(1);
 	testEntity = player;
+
+	ECS_updateWorld();
 }
 
 

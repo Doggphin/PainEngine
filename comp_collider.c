@@ -1,23 +1,6 @@
 #include "comp_collider.h"
 #include "macros.h"
 
-void Collider_awake(Collider* x) {
-	x->shape = SHAPE_NONE;
-	x->AABB = malloc(sizeof(AABB));
-}
-
-void Collider_start(Collider* x) {
-
-}
-
-void Collider_update(float delta, Collider* x) {
-
-}
-
-void Collider_lateupdate(Collider* x) {
-
-}
-
 void Collider_updateAABB(Collider* x, Transform* newT) {
 	if(x->shape == SHAPE_NONE) {
 		return;
@@ -45,9 +28,8 @@ void Collider_updateAABB(Collider* x, Transform* newT) {
 		recalculateAABB = 1;
 	}
 	if (recalculateAABB) {
-		Geometry_generateAABBShape(x->shapeStruct, x->shape, x->AABB);
+		Geometry_generateAABBShape(&newT->position, x->shapeStruct, x->shape, x->AABB);
 	}
-	free(newT);
 }
 
 void Collider_updateWorldShape(Collider* c) {
@@ -55,7 +37,24 @@ void Collider_updateWorldShape(Collider* c) {
 		return;
 	}
 	QMALLOC(newT, Transform)
-	memcpy(newT, c->entity->transform, sizeof(Transform));
 	Transform_hierarchyTransform(c->entity->transform, newT);
 	Collider_updateAABB(c, newT);
+}
+
+void Collider_awake(Collider* x) {
+	x->shape = SHAPE_NONE;
+	x->AABB = malloc(sizeof(AABB));
+	Collider_updateWorldShape(x);
+}
+
+void Collider_start(Collider* x) {
+
+}
+
+void Collider_update(float delta, Collider* x) {
+
+}
+
+void Collider_lateupdate(Collider* x) {
+
 }

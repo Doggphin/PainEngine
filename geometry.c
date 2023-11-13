@@ -11,18 +11,18 @@ void Geometry_calculateAABB(Vector3* center, Vector3* extents, AABB* out) {
 	Vector3_set(center->x - extents->x / 2, center->y - extents->y / 2, center->z - extents->z / 2, &(out->min));
 }
 
-void Geometry_generateAABBShape(void* shape, PrimitiveShape shapeType, AABB* out) {
+void Geometry_generateAABBShape(Vector3* center, void* shape, PrimitiveShape shapeType, AABB* out) {
 	switch (shapeType) {
 	case SHAPE_NONE:
 		return;
 	case SHAPE_AABB:
 		AABB* aabb = (AABB*)shape;
-		Geometry_calculateAABB(&aabb->center, &aabb->extents, out);
+		Geometry_calculateAABB(center, &aabb->extents, out);
 		break;
 	case SHAPE_SPHERE:
 		Sphere* sphere = (Sphere*)shape;
 		Vector3 sphereExtents = { sphere->radius, sphere->radius, sphere->radius };
-		Geometry_calculateAABB(&sphere->center, &sphereExtents, out);
+		Geometry_calculateAABB(center, &sphereExtents, out);
 		break;
 	}
 	return;

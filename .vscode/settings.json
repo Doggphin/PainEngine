@@ -46,6 +46,8 @@
         "comp_playercontroller.h": "c",
         "comp_cameracontroller.h": "c",
         "comp_camera.h": "c",
-        "algorithm": "c"
+        "algorithm": "c",
+        "comp_collider.h": "c",
+        "macros.h": "c"
     }
 }
